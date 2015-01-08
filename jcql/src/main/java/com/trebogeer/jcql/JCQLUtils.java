@@ -5,9 +5,7 @@ import com.sun.codemodel.JClassAlreadyExistsException;
 import com.sun.codemodel.JCodeModel;
 import com.sun.codemodel.JDefinedClass;
 import com.sun.codemodel.JMod;
-import com.sun.codemodel.JVar;
 
-import javax.sql.DataSource;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
