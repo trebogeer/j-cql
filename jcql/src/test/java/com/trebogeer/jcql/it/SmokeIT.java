@@ -23,6 +23,7 @@ public class SmokeIT {
             KeyspaceMetadata r = s.getCluster().getMetadata().getKeyspace(key_space);
 
             System.out.println(r.exportAsString());
+
             s.close();
             c.close();
         } catch (Exception t) {

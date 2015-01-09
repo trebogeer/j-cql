@@ -4,7 +4,8 @@ CREATE KEYSPACE IF NOT EXISTS jcql WITH REPLICATION = {'class':'NetworkTopologyS
 
 CREATE TYPE jcql.phone (
    alias text,
-   number text);
+   number text
+);
 
 CREATE TYPE jcql.address (
    street text,

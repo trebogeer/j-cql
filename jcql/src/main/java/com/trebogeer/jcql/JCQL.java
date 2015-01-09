@@ -14,6 +14,8 @@ import com.datastax.driver.mapping.annotations.UDT;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import com.sun.codemodel.ClassType;
+import com.sun.codemodel.JBlock;
 import com.sun.codemodel.JClass;
 import com.sun.codemodel.JClassAlreadyExistsException;
 import com.sun.codemodel.JCodeModel;
@@ -22,6 +24,7 @@ import com.sun.codemodel.JExpr;
 import com.sun.codemodel.JFieldVar;
 import com.sun.codemodel.JMethod;
 import com.sun.codemodel.JMod;
+import com.sun.codemodel.JTypeVar;
 import com.sun.codemodel.JVar;
 import com.sun.codemodel.writer.SingleStreamCodeWriter;
 import org.javatuples.Pair;
@@ -121,10 +124,34 @@ public class JCQL {
             Multimap<String, Pair<String, DataType>> beans,
             Multimap<String, Pair<String, ColumnMetadata>> tables,
             ArrayListMultimap<String, String> partitionKeys) {
-        JCodeModel model = new JCodeModel();
+        final JCodeModel model = new JCodeModel();
+        final JDefinedClass rowMapperFactory;
+        final JDefinedClass rowMapper;
+        try {
+            rowMapper = model._class(JMod.PUBLIC, cfg.jpackage + ".RowMapper", ClassType.INTERFACE);
+            JTypeVar jtv = rowMapper.generify("T");
+            rowMapper.method(JMod.NONE, jtv, "map").param(com.datastax.driver.core.Row.class, "row");
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to generate mapper interface.", e);
+        }
+
+        try {
+            rowMapperFactory = model._class(JMod.PUBLIC, cfg.jpackage + ".RowMapperFactory", ClassType.INTERFACE);
+            JTypeVar jtv = rowMapperFactory.generify("RowMapper<T>");
+            rowMapperFactory.method(JMod.NONE, jtv, " mapper");
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to generate mapper factory interface.", e);
+        }
+
+
         for (String cl : beans.keySet()) {
             try {
                 JDefinedClass clazz = JCQLUtils.getBeanClass(cfg.jpackage, JCQLUtils.camelize(cl), model);
+
+                // row mapper
+                rowMapperCode(clazz, rowMapper, rowMapperFactory);
+
+                // fields/getters/setters/annotations
                 clazz.annotate(UDT.class).param("keyspace", cfg.keysapce).param("name", cl);
                 for (Pair<String, DataType> field : beans.get(cl)) {
                     javaBeanFieldWithGetterSetter(clazz, model, field.getValue1(), field.getValue0(),
@@ -140,6 +167,9 @@ public class JCQL {
         for (String table : tables.keySet()) {
             try {
                 JDefinedClass clazz = JCQLUtils.getBeanClass(cfg.jpackage, JCQLUtils.camelize(table), model);
+                // row mapper
+                rowMapperCode(clazz, rowMapper, rowMapperFactory);
+                // fields/getters/setters/annotations
                 clazz.annotate(Table.class).param("keyspace", cfg.keysapce).param("name", table);
                 List<String> pkList = partitionKeys.get(table);
                 Set<String> pks = new HashSet<String>(pkList);
@@ -184,6 +214,23 @@ public class JCQL {
         JMethod m = clazz.method(JMod.PUBLIC, ref, "set" + JCQLUtils.camelize(name));
         JVar p = m.param(ref, JCQLUtils.camelize(name, true));
         m.body().assign(JExpr._this().ref(f), p);
+    }
+
+    private void rowMapperCode(JDefinedClass clazz, JClass rowMapper, JClass rowMapperFactory) throws JClassAlreadyExistsException {
+        JClass rowMapperNarrowed = rowMapper.narrow(clazz);
+        clazz._implements(rowMapperFactory.narrow(rowMapperNarrowed));
+        JDefinedClass mapperImpl = clazz._class(
+                JMod.FINAL | JMod.STATIC | JMod.PRIVATE, clazz.name() + "RowMapper")
+                ._implements(rowMapperNarrowed);
+        clazz.field(JMod.PRIVATE | JMod.STATIC | JMod.FINAL, mapperImpl, "mapper", JExpr._new(mapperImpl));
+
+        JMethod map = mapperImpl.method(JMod.PUBLIC, clazz, "map");
+        map.param(com.datastax.driver.core.Row.class, "row");
+        JBlock body = map.body();
+        body.decl(clazz, "entity", JExpr._new(clazz));
+        // TODO implement
+        body._return(JExpr.direct("entity"));
+        clazz.method(JMod.PUBLIC, rowMapperNarrowed, "mapper").body()._return(JExpr.direct("mapper"));
     }
 
     private JClass getType(DataType t, JCodeModel model) {
