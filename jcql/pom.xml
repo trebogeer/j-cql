@@ -27,6 +27,25 @@
         <cassandraVersion>2.1.2</cassandraVersion>
     </properties>
 
+    <pluginRepositories>
+        <pluginRepository>
+            <!--mvn install:install-file -Dfile=cassandra-maven-plugin-2.1.1-1-SNAPSHOT.jar -DgroupId=org.codehaus.mojo -DartifactId=cassandra-maven-plugin -Dversion=2.1.1-1pre -Dpackaging=jar -DcreateChecksum=true -DlocalRepositoryPath=/home/dimav/j-cql/jcql/repo/-->
+            <id>project.local</id>
+            <name>local</name>
+            <url>file:${project.basedir}/repo</url>
+            <layout>default</layout>
+            <releases>
+                <enabled>true</enabled>
+                <checksumPolicy>ignore</checksumPolicy>
+                <updatePolicy>never</updatePolicy>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+                <checksumPolicy>ignore</checksumPolicy>
+            </snapshots>
+        </pluginRepository>
+    </pluginRepositories>
+
     <dependencies>
         <dependency>
             <groupId>com.sun.xml.bind</groupId>
@@ -87,6 +106,7 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>build-helper-maven-plugin</artifactId>
+                <version>1.8</version>
                 <executions>
                     <execution>
                         <goals>
@@ -107,7 +127,7 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>cassandra-maven-plugin</artifactId>
-                <version>2.1.1-1-SNAPSHOT</version>
+                <version>2.1.2-1</version>
                 <configuration>
                     <rpcPort>${cs.rpc}</rpcPort>
                     <jmxPort>${cs.jmx}</jmxPort>
