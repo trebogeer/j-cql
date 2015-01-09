@@ -1,25 +1,25 @@
 
-DROP KEYSPACE IF EXISTS test_ks;
-CREATE KEYSPACE IF NOT EXISTS test_ks WITH REPLICATION = {'class':'NetworkTopologyStrategy'};
+DROP KEYSPACE IF EXISTS jcql;
+CREATE KEYSPACE IF NOT EXISTS jcql WITH REPLICATION = {'class':'NetworkTopologyStrategy'};
 
-CREATE TYPE test_ks.phone (
+CREATE TYPE jcql.phone (
    alias text,
    number text);
 
-CREATE TYPE test_ks.address (
+CREATE TYPE jcql.address (
    street text,
    city text,
    zipCode int,
    phones list<frozen <phone>>
 );
 
-CREATE TABLE test_ks.accounts (
+CREATE TABLE jcql.accounts (
    email text PRIMARY KEY,
    name text,
    addr frozen<address>
 );
 
-CREATE TABLE test_ks.tuple_test (
+CREATE TABLE jcql.tuple_test (
    the_key int PRIMARY KEY,
    the_tuple frozen<tuple<int, text, float>>
 );
