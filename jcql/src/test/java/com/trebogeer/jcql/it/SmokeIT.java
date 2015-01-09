@@ -2,8 +2,12 @@ package com.trebogeer.jcql.it;
 
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.KeyspaceMetadata;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import org.junit.Test;
+
+import java.util.Iterator;
 
 /**
  * @author dimav
@@ -22,6 +26,16 @@ public class SmokeIT {
             Session s = c.connect();
             KeyspaceMetadata r = s.getCluster().getMetadata().getKeyspace(key_space);
 
+            s.execute("INSERT INTO jcql.phone VALUES ('work','623-34-5687')");
+
+            ResultSet rs = s.execute("SELECT * FORM jcql.phone");
+
+            Iterator<Row> iterator = rs.iterator();
+            while (!rs.isFullyFetched() & iterator.hasNext()) {
+                Row row = iterator.next();
+                System.out.println(row.getString("alias"));
+                System.out.println(row.getString("number"));
+            }
             System.out.println(r.exportAsString());
 
             s.close();

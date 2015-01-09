@@ -1,5 +1,7 @@
 package com.trebogeer.jcql;
 
+import com.datastax.driver.core.DataType;
+import com.datastax.driver.core.GettableData;
 import com.sun.codemodel.ClassType;
 import com.sun.codemodel.JClassAlreadyExistsException;
 import com.sun.codemodel.JCodeModel;
@@ -67,5 +69,52 @@ public class JCQLUtils {
                 ._class(JMod.PUBLIC, packageName + "." + bean, ClassType.CLASS);
         clazz.constructor(JMod.PUBLIC);
         return clazz;
+    }
+
+    public static String getDataMethod(DataType.Name dataTypeName) {
+
+        switch (dataTypeName) {
+            case ASCII:
+            case TEXT:
+            case VARCHAR:
+                    return "getString";
+            case BLOB:
+                return "getBytes";
+            case CUSTOM:
+                return "getBytesUnsafe";
+            case BIGINT:
+            case COUNTER:
+                return "getLong";
+            case INT:
+                return "getInt";
+            case DECIMAL:
+                return "getDecimal";
+            case VARINT:
+                return "getVarint";
+            case BOOLEAN:
+                return "getBool";
+            case DOUBLE:
+                return "getDouble";
+            case TIMESTAMP:
+                return "getDate";
+            case FLOAT:
+                return "getFloat";
+            case UUID:
+            case TIMEUUID:
+                return "getUUID";
+            case INET:
+                return "getInet";
+            case LIST:
+                return "getList";
+            case SET:
+                return "getSet";
+            case MAP:
+                return "getMap";
+            case UDT:
+                return "getUDTValue";
+            case TUPLE:
+                return "getTupleValue";
+        }
+        return null;
     }
 }
