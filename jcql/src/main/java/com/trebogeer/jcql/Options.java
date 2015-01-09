@@ -2,10 +2,6 @@ package com.trebogeer.jcql;
 
 import org.kohsuke.args4j.Option;
 
-import java.util.List;
-
-import static com.google.common.collect.Lists.newArrayList;
-
 /**
  * @author dimav
  *         Date: 1/6/15

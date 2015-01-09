@@ -1,7 +1,6 @@
 package com.trebogeer.jcql;
 
 import com.datastax.driver.core.DataType;
-import com.datastax.driver.core.GettableData;
 import com.sun.codemodel.ClassType;
 import com.sun.codemodel.JClassAlreadyExistsException;
 import com.sun.codemodel.JCodeModel;
