@@ -45,9 +45,9 @@
             <version>${args4j.v}</version>
         </dependency>
         <dependency>
-            <groupId>org.testng</groupId>
-            <artifactId>testng</artifactId>
-            <version>${testng.v}</version>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.12</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -86,26 +86,55 @@
         <plugins>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>reserve-network-port</goal>
+                        </goals>
+                        <configuration>
+                            <portNames>
+                                <portName>cs.rpc</portName>
+                                <portName>cs.jmx</portName>
+                                <portName>cs.storage</portName>
+                                <portName>cs.stop</portName>
+                                <portName>cs.ntp</portName>
+                            </portNames>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
                 <artifactId>cassandra-maven-plugin</artifactId>
-                <version>2.0.0-1</version>
+                <version>2.1.1-1-SNAPSHOT</version>
                 <configuration>
-                    <systemPropertyVariables>
-                        <cassandraVersion>${cassandraVersion}</cassandraVersion>
-                    </systemPropertyVariables>
-                    <rpcPort>19160</rpcPort>
-                    <jmxPort>17199</jmxPort>
-                    <storagePort>17000</storagePort>
-                    <stopPort>18081</stopPort>
-                    <startWaitSeconds>10</startWaitSeconds>
-
+                    <rpcPort>${cs.rpc}</rpcPort>
+                    <jmxPort>${cs.jmx}</jmxPort>
+                    <storagePort>${cs.storage}</storagePort>
+                    <stopPort>${cs.stop}</stopPort>
+                    <nativeTransportPort>${cs.ntp}</nativeTransportPort>
+                    <startWaitSeconds>30</startWaitSeconds>
+                    <startNativeTransport>true</startNativeTransport>
                 </configuration>
                 <executions>
                     <execution>
-                        <phase>pre-integration-test</phase>
+                        <id>start-stop</id>
                         <goals>
                             <goal>start</goal>
                             <goal>stop</goal>
                         </goals>
+                    </execution>
+                    <execution>
+                        <id>deploy-schema</id>
+                        <goals>
+                            <goal>cql-exec</goal>
+                        </goals>
+                        <configuration>
+                            <cqlScript>${basedir}/src/test/resources/schema.cql</cqlScript>
+                            <!-- TODO upgrade plugin to use proper versioning -->
+                            <cqlVersion>3.0.0</cqlVersion>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
@@ -118,6 +147,15 @@
                             <goal>integration-test</goal>
                             <goal>verify</goal>
                         </goals>
+                        <configuration>
+                            <systemPropertyVariables>
+                                <rpcPort>${cs.rpc}</rpcPort>
+                                <storagePort>${cs.storage}</storagePort>
+                                <stopPort>${cs.stop}</stopPort>
+                                <jmxPort>${cs.jmx}</jmxPort>
+                                <ntPort>${cs.ntp}</ntPort>
+                            </systemPropertyVariables>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
