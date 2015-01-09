@@ -16,7 +16,9 @@ CREATE TYPE jcql.address (
 CREATE TABLE jcql.accounts (
    email text PRIMARY KEY,
    name text,
-   addr frozen<address>
+   addr frozen<address>,
+   settest set<text>,
+   maptest map<int, text>
 );
 
 CREATE TABLE jcql.tuple_test (

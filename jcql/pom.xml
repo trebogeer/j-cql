@@ -205,7 +205,7 @@
                         <argument>-k</argument>
                         <argument>${cs.test.ks}</argument>
                         <argument>-d</argument>
-                        <argument>n</argument>
+                        <argument>y</argument>
                         <!--argument>-s</argument>
                         <argument></argument-->
                     </arguments>

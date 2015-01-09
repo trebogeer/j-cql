@@ -29,7 +29,7 @@ public class Options {
     String password = "";
 
     @Option(name = "--keyspace", aliases = {"-k"}/*, multiValued = true*/)
-    List<String> keysapces = newArrayList("catalog_ks");
+    String keysapce = "jcql";
 
     @Option(name = "--meta-config-file", aliases = {"-mcf"})
     String config = null;

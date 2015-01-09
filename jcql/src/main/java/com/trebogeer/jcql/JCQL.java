@@ -71,8 +71,8 @@ public class JCQL {
     }
 
     public void exec() throws IOException {
-        String keyspace = cfg.keysapces.get(0);
-        Cluster c = Cluster.builder().addContactPoint(cfg.dbHost).build();
+        String keyspace = cfg.keysapce;
+        Cluster c = Cluster.builder().addContactPoint(cfg.dbHost).withPort(Integer.valueOf(cfg.dbPort)).build();
         Session s = c.connect(keyspace);
         Multimap<String, Pair<String, DataType>> beans = HashMultimap.create();
         Multimap<String, Pair<String, ColumnMetadata>> tables = HashMultimap.create();
@@ -125,7 +125,7 @@ public class JCQL {
         for (String cl : beans.keySet()) {
             try {
                 JDefinedClass clazz = JCQLUtils.getBeanClass(cfg.jpackage, JCQLUtils.camelize(cl), model);
-                clazz.annotate(UDT.class).param("keyspace", cfg.keysapces.get(0)).param("name", cl);
+                clazz.annotate(UDT.class).param("keyspace", cfg.keysapce).param("name", cl);
                 for (Pair<String, DataType> field : beans.get(cl)) {
                     javaBeanFieldWithGetterSetter(clazz, model, field.getValue1(), field.getValue0(),
                             -1, com.datastax.driver.mapping.annotations.Field.class);
@@ -140,7 +140,7 @@ public class JCQL {
         for (String table : tables.keySet()) {
             try {
                 JDefinedClass clazz = JCQLUtils.getBeanClass(cfg.jpackage, JCQLUtils.camelize(table), model);
-                clazz.annotate(Table.class).param("keyspace", cfg.keysapces.get(0)).param("name", table);
+                clazz.annotate(Table.class).param("keyspace", cfg.keysapce).param("name", table);
                 List<String> pkList = partitionKeys.get(table);
                 Set<String> pks = new HashSet<String>(pkList);
 
@@ -197,14 +197,22 @@ public class JCQL {
                     return ref.narrow(model.ref(cfg.jpackage + "." + JCQLUtils.camelize(ut.getTypeName())));
                 } else if (arg instanceof TupleType) {
                     TupleType tt = (TupleType) arg;
-                    // TODO implement
+                    List<DataType> dt = tt.getComponentTypes();
+                    // TODO figure out how cassandra standard mappers deal with tuples
+
+                    JClass dts[] = new JClass[dt.size()];
+                    for (int i = 0; i < dts.length; i++) {
+                        dts[i] = getType(dt.get(i), model);
+                    }
+                    return ref.narrow(dts);
                 }
 
             } else if (typeArgs.size() == 2) {
                 DataType arg0 = typeArgs.get(0);
                 DataType arg1 = typeArgs.get(1);
-                // TODO need to look into
-                ref.narrow(arg0.asJavaClass(), arg1.asJavaClass());
+                JClass argc0 = getType(arg0, model);
+                JClass argc1 = getType(arg1, model);
+                return ref.narrow(argc0, argc1);
             }
             return ref;
         } else if (t.isFrozen()) {
@@ -212,8 +220,15 @@ public class JCQL {
                 UserType ut = (UserType) t;
                 return model.ref(cfg.jpackage + "." + JCQLUtils.camelize(ut.getTypeName()));
             } else if (t instanceof TupleType) {
-                TupleType tt = (TupleType) t;
-                // TODO implement
+                // TODO figure out how cassandra standard mappers deal with tuples
+                // and what are they mapped to
+             /*   TupleType tt = (TupleType) t;
+                List<DataType> dt = tt.getComponentTypes();
+                JClass dts[] = new JClass[dt.size()];
+                for (int i = 0; i < dts.length; i++) {
+                    dts[i] = getType(dt.get(i), model);
+                }
+                return ref.narrow(dts);*/
             }
             return model.ref(cfg.jpackage + "." + JCQLUtils.camelize(t.getName().name()));
         } else {
