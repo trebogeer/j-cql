@@ -30,6 +30,8 @@ import com.sun.codemodel.JTypeVar;
 import com.sun.codemodel.JVar;
 import com.sun.codemodel.writer.SingleStreamCodeWriter;
 import org.javatuples.Pair;
+import org.javatuples.Triplet;
+import org.javatuples.Tuple;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.slf4j.Logger;
@@ -51,10 +53,12 @@ public class JCQL {
 
     private static final Logger logger = LoggerFactory.getLogger("JCQL.LOG");
 
-    private Options cfg;
+    private final Options cfg;
+    private final JCodeModel model;
 
     private JCQL(Options cfg) {
         this.cfg = cfg;
+        this.model = new JCodeModel();
     }
 
     public static void main(String[] args) {
@@ -126,7 +130,6 @@ public class JCQL {
             Multimap<String, Pair<String, DataType>> beans,
             Multimap<String, Pair<String, ColumnMetadata>> tables,
             ArrayListMultimap<String, String> partitionKeys) {
-        final JCodeModel model = new JCodeModel();
         // final JDefinedClass rowMapperFactory;
         final JDefinedClass rowMapper;
         try {
@@ -156,7 +159,7 @@ public class JCQL {
                 // fields/getters/setters/annotations
                 clazz.annotate(UDT.class).param("keyspace", cfg.keysapce).param("name", cl);
                 for (Pair<String, DataType> field : beans.get(cl)) {
-                    javaBeanFieldWithGetterSetter(clazz, model, field.getValue1(), field.getValue0(),
+                    javaBeanFieldWithGetterSetter(clazz, field.getValue1(), field.getValue0(),
                             -1, com.datastax.driver.mapping.annotations.Field.class);
 
                 }
@@ -188,7 +191,7 @@ public class JCQL {
                     if (pks.contains(fieldName) && pks.size() > 1) {
                         order = pkList.indexOf(field.getValue0());
                     }
-                    javaBeanFieldWithGetterSetter(clazz, model, field.getValue1().getType(), fieldName,
+                    javaBeanFieldWithGetterSetter(clazz, field.getValue1().getType(), fieldName,
                             order, Column.class);
 
 
@@ -201,11 +204,10 @@ public class JCQL {
     }
 
     private void javaBeanFieldWithGetterSetter(
-            JDefinedClass clazz, JCodeModel model,
+            JDefinedClass clazz,
             DataType dt, String name, int pko,
             Class<? extends Annotation> ann) {
-        JClass ref = getType(dt, model);
-
+        JClass ref = getType(dt);
         JFieldVar f = clazz.field(JMod.PRIVATE, ref, JCQLUtils.camelize(name, true));
         if (ann != null) {
             f.annotate(ann).param("name", name);
@@ -235,6 +237,7 @@ public class JCQL {
         JMethod map = mapperImpl.method(JMod.PUBLIC, clazz, "map");
         JVar param = map.param(com.datastax.driver.core.GettableData.class, "data");
         JBlock body = map.body();
+        body._if(param.eq(JExpr._null()))._then()._return(JExpr._null());
         JVar bean = body.decl(clazz, "entity", JExpr._new(clazz));
         for (Pair<String, DataType> field : fields) {
             String name = field.getValue0();
@@ -244,10 +247,9 @@ public class JCQL {
 
             } else if (type.isFrozen()) {
                 if (type instanceof UserType) {
-                    //TODO add Bean.mapper.map( ... )
                     UserType ut = (UserType) type;
                     body.add(bean.invoke("set" + JCQLUtils.camelize(name))
-                            .arg(JExpr.invoke(JExpr.direct(JCQLUtils.camelize(ut.getTypeName()) + ".mapper"), "map")
+                            .arg(model.ref(getFullCallName(ut.getTypeName())).staticInvoke("mapper").invoke("map")
                                     .arg(param.invoke(JCQLUtils.getDataMethod(type.getName())).arg(name))));
                 } else if (type instanceof TupleType) {
 
@@ -262,54 +264,43 @@ public class JCQL {
         clazz.method(JMod.PUBLIC | JMod.STATIC, rowMapperNarrowed, "mapper").body()._return(JExpr.direct("mapper"));
     }
 
-    private JClass getType(DataType t, JCodeModel model) {
+    private JClass getType(DataType t) {
         if (t.isCollection()) {
             JClass ref = model.ref(t.asJavaClass());
             List<DataType> typeArgs = t.getTypeArguments();
             if (typeArgs.size() == 1) {
                 DataType arg = typeArgs.get(0);
-                if (arg instanceof UserType) {
-                    UserType ut = (UserType) arg;
-                    return ref.narrow(model.ref(cfg.jpackage + "." + JCQLUtils.camelize(ut.getTypeName())));
-                } else if (arg instanceof TupleType) {
-                    TupleType tt = (TupleType) arg;
-                    List<DataType> dt = tt.getComponentTypes();
-                    // TODO figure out how cassandra standard mappers deal with tuples
-
-                    JClass dts[] = new JClass[dt.size()];
-                    for (int i = 0; i < dts.length; i++) {
-                        dts[i] = getType(dt.get(i), model);
-                    }
-                    return ref.narrow(dts);
-                }
-
+                return ref.narrow(getType(arg));
             } else if (typeArgs.size() == 2) {
                 DataType arg0 = typeArgs.get(0);
                 DataType arg1 = typeArgs.get(1);
-                JClass argc0 = getType(arg0, model);
-                JClass argc1 = getType(arg1, model);
+                JClass argc0 = getType(arg0);
+                JClass argc1 = getType(arg1);
                 return ref.narrow(argc0, argc1);
             }
             return ref;
         } else if (t.isFrozen()) {
             if (t instanceof UserType) {
                 UserType ut = (UserType) t;
-                return model.ref(cfg.jpackage + "." + JCQLUtils.camelize(ut.getTypeName()));
+                return model.ref(getFullCallName(ut.getTypeName()));
             } else if (t instanceof TupleType) {
                 // TODO figure out how cassandra standard mappers deal with tuples
-                // and what are they mapped to
-             /*   TupleType tt = (TupleType) t;
+                // and what are they mapped to  -- seems like they don't handle tuples
+                TupleType tt = (TupleType) t;
                 List<DataType> dt = tt.getComponentTypes();
                 JClass dts[] = new JClass[dt.size()];
                 for (int i = 0; i < dts.length; i++) {
-                    dts[i] = getType(dt.get(i), model);
+                    dts[i] = getType(dt.get(i));
                 }
-                return ref.narrow(dts);*/
+                return model.ref(JCQLUtils.getTupleClass(dts.length)).narrow(dts);
             }
-            return model.ref(cfg.jpackage + "." + JCQLUtils.camelize(t.getName().name()));
-        } else {
-            return model.ref(t.asJavaClass());
+
         }
+        return model.ref(t.asJavaClass());
+    }
+
+    private String getFullCallName(String name) {
+        return cfg.jpackage + "." + JCQLUtils.camelize(name);
     }
 
 }

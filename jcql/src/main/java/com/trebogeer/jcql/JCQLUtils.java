@@ -6,6 +6,16 @@ import com.sun.codemodel.JClassAlreadyExistsException;
 import com.sun.codemodel.JCodeModel;
 import com.sun.codemodel.JDefinedClass;
 import com.sun.codemodel.JMod;
+import org.javatuples.Decade;
+import org.javatuples.Ennead;
+import org.javatuples.Octet;
+import org.javatuples.Quartet;
+import org.javatuples.Quintet;
+import org.javatuples.Septet;
+import org.javatuples.Sextet;
+import org.javatuples.Triplet;
+import org.javatuples.Tuple;
+import org.javatuples.Unit;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -76,7 +86,7 @@ public class JCQLUtils {
             case ASCII:
             case TEXT:
             case VARCHAR:
-                    return "getString";
+                return "getString";
             case BLOB:
                 return "getBytes";
             case CUSTOM:
@@ -115,5 +125,33 @@ public class JCQLUtils {
                 return "getTupleValue";
         }
         return null;
+    }
+
+    public static Class<?> getTupleClass(int len) {
+        switch (len) {
+            case 1:
+                return Unit.class;
+            case 2:
+                return Tuple.class;
+            case 3:
+                return Triplet.class;
+            case 4:
+                return Quartet.class;
+            case 5:
+                return Quintet.class;
+            case 6:
+                return Sextet.class;
+            case 7:
+                return Septet.class;
+            case 8:
+                return Octet.class;
+            case 9:
+                return Ennead.class;
+            case 10:
+                return Decade.class;
+            default:
+                throw new IllegalArgumentException(String.format("Unsupported value %d", len));
+
+        }
     }
 }
