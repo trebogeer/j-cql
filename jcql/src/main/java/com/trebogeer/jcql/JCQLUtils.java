@@ -28,6 +28,35 @@ import java.util.regex.Pattern;
  */
 public class JCQLUtils {
 
+    public static final String POM = "<project xmlns=\"http://maven.apache.org/POM/4.0.0\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n" +
+            "         xsi:schemaLocation=\"http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd\">\n" +
+            "    <modelVersion>4.0.0</modelVersion>\n" +
+            "\n" +
+            "    <groupId>${group.id}</groupId>\n" +
+            "    <artifactId>${artifact.id}</artifactId>\n" +
+            "    <version>${date}</version>\n" +
+            "    <packaging>jar</packaging>\n" +
+            "\n" +
+            "    <name>${artifact.id}</name>\n" +
+            "\n" +
+            "    <properties>\n" +
+            "        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>\n" +
+            "    </properties>\n" +
+            "\n" +
+            "    <dependencies>\n" +
+            "        <dependency>\n" +
+            "            <groupId>org.javatuples</groupId>\n" +
+            "            <artifactId>javatuples</artifactId>\n" +
+            "            <version>1.2</version>\n" +
+            "        </dependency>\n" +
+            "        <dependency>\n" +
+            "            <groupId>com.datastax.cassandra</groupId>\n" +
+            "            <artifactId>cassandra-driver-core</artifactId>\n" +
+            "            <version>2.1.4</version>\n" +
+            "        </dependency>\n" +
+            "    </dependencies>\n" +
+            "</project>";
+
     public static String camelize(String word) {
         return camelize(word, false);
     }
