@@ -25,5 +25,10 @@ CREATE TABLE jcql.accounts (
 
 CREATE TABLE jcql.tuple_test (
    the_key int PRIMARY KEY,
-   the_tuple frozen<tuple<int, text, float>>
+   the1_tuple frozen<tuple<text>>,
+   the2_tuple frozen<tuple<int, list<text>>>,
+   the3_tuple frozen<tuple<int, text, float>>,
+   the4_tuple frozen<tuple<int, phone, float, text>>,
+   the5_tuple frozen<tuple<int, float, double, varint, timestamp>>,
+   the6_tuple frozen<tuple<int, float, double, varint, tuple<int, text>, text>>
 );

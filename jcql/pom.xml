@@ -134,7 +134,7 @@
                     <storagePort>${cs.storage}</storagePort>
                     <stopPort>${cs.stop}</stopPort>
                     <nativeTransportPort>${cs.ntp}</nativeTransportPort>
-                    <startWaitSeconds>30</startWaitSeconds>
+                    <startWaitSeconds>120</startWaitSeconds>
                     <startNativeTransport>true</startNativeTransport>
                 </configuration>
                 <executions>

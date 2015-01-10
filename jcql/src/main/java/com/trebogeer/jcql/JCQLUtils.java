@@ -9,6 +9,7 @@ import com.sun.codemodel.JMod;
 import org.javatuples.Decade;
 import org.javatuples.Ennead;
 import org.javatuples.Octet;
+import org.javatuples.Pair;
 import org.javatuples.Quartet;
 import org.javatuples.Quintet;
 import org.javatuples.Septet;
@@ -132,7 +133,7 @@ public class JCQLUtils {
             case 1:
                 return Unit.class;
             case 2:
-                return Tuple.class;
+                return Pair.class;
             case 3:
                 return Triplet.class;
             case 4:
