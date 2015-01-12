@@ -1,0 +1,11 @@
+schema:
+  jcql
+
+insert_phone:
+    INSERT INTO jcql.phone VALUES (?,?)
+
+get_all:
+    SELECT * FORM jcql.phone
+
+delete_all:
+    DELETE * FROM jcq.phone

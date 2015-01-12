@@ -4,7 +4,7 @@
 
     <groupId>com.trebogeer.jcql</groupId>
     <artifactId>jcql</artifactId>
-    <version>0.0.7</version>
+    <version>0.9.1-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>JCQL</name>
@@ -56,6 +56,7 @@
         <slf4j.v>1.7.5</slf4j.v>
         <jdk.v>1.7</jdk.v>
         <logback.version>1.0.9</logback.version>
+        <yaml.v>1.14</yaml.v>
         <cs.driver.v>2.1.4</cs.driver.v>
         <cs.test.user>cscql</cs.test.user>
         <cs.test.pwd>cscql</cs.test.pwd>
@@ -168,6 +169,11 @@
             <version>${args4j.v}</version>
         </dependency>
         <dependency>
+            <groupId>org.yaml</groupId>
+            <artifactId>snakeyaml</artifactId>
+            <version>${yaml.v}</version>
+        </dependency>
+        <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>4.12</version>
@@ -207,6 +213,15 @@
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.2</version>
+                <configuration>
+                    <source>1.7</source>
+                    <target>1.7</target>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>build-helper-maven-plugin</artifactId>
@@ -310,8 +325,8 @@
                         <argument>${cs.test.ks}</argument>
                         <argument>-d</argument>
                         <argument>y</argument>
-                        <!--argument>-s</argument>
-                        <argument></argument-->
+                        <argument>-cql</argument>
+                        <argument>${project.basedir}/src/test/resources/cql.yaml</argument>
                     </arguments>
                 </configuration>
             </plugin>

@@ -53,6 +53,8 @@ public class SmokeIT {
                 System.out.println(row.getString("number"));
             }
             System.out.println(r.exportAsString());
+            
+            s.execute("DELETE * FROM jcql.phone");
 
             s.close();
             c.close();

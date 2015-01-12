@@ -53,9 +53,12 @@ import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.yaml.snakeyaml.Yaml;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.annotation.Annotation;
 import java.util.Collection;
 import java.util.HashSet;
@@ -129,8 +132,24 @@ public class JCQL {
             tables.putAll(name, fields);
         }
 
-        s.close();
-        c.close();
+        if (cfg.cqlFile != null && !"".equals(cfg.cqlFile.trim())) {
+            File cql = new File(cfg.cqlFile);
+            if (!cql.exists() || !cql.isFile()) {
+                throw new RuntimeException(
+                        String.format(
+                                "CQL file specified '%s' either " +
+                                        "does not exist or is not a file.", cfg.cqlFile));
+                
+            }
+            try (InputStream is = new FileInputStream(cql)) {
+                Yaml yaml = new Yaml();
+                for (Object data : yaml.loadAll(is)) {
+                    System.out.println(data);
+                }
+            }
+
+        }
+        
 
         JCodeModel model = generateCode(beans, tables, partitionKeys);
         if ("y".equalsIgnoreCase(cfg.debug)) {
@@ -141,6 +160,9 @@ public class JCQL {
                 model.build(new File(cfg.generatedSourceDir));
             }
         }
+
+        s.close();
+        c.close();
     }
 
     public JCodeModel generateCode(
