@@ -326,7 +326,7 @@
                         <argument>-d</argument>
                         <argument>y</argument>
                         <!--<argument>-cql</argument>-->
-                        <!--<argument>${project.basedir}/src/test/resources/cql.yaml</argument>-->
+                        <!--<argument>${project.basedir}/src/test/resources/cql.yml</argument>-->
                     </arguments>
                 </configuration>
             </plugin>

@@ -83,7 +83,7 @@ import static com.trebogeer.jcql.JCQLUtils.isInteger;
 
 public class JCQLMain {
 
-    private static final Logger logger = LoggerFactory.getLogger("JCQLMain.LOG");
+    private static final Logger logger = LoggerFactory.getLogger("JCQL.LOG");
 
     private final Options cfg;
     private final JCodeModel model;
