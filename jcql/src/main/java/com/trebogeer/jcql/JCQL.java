@@ -347,8 +347,22 @@ public class JCQL {
             String name = field.getValue0();
             DataType type = field.getValue1();
             if (type.isCollection()) {
-                // TODO handle class parameters
 
+                // TODO this is almost a copy paste - extract later
+                JClass ref = model.ref(type.asJavaClass());
+                List<DataType> typeArgs = type.getTypeArguments();
+                if (typeArgs.size() == 1) {
+                    DataType arg = typeArgs.get(0);
+                    ref = ref.narrow(getType(arg));
+                } else if (typeArgs.size() == 2) {
+                    DataType arg0 = typeArgs.get(0);
+                    DataType arg1 = typeArgs.get(1);
+                    JClass argc0 = getType(arg0);
+                    JClass argc1 = getType(arg1);
+                    ref = ref.narrow(argc0, argc1);
+                }
+                // TODO figure out parametrization
+               // body.add(bean.invoke("set" + camelize(name)).arg(param.iref).arg(name));
             } else if (type.isFrozen()) {
                 if (type instanceof UserType) {
                     UserType ut = (UserType) type;
@@ -358,7 +372,6 @@ public class JCQL {
                 } else if (type instanceof TupleType) {
 
                 }
-                // TODO tuple and udt
             } else {
                 body.add(bean.invoke("set" + camelize(name))
                         .arg(param.invoke(JCQLUtils.getDataMethod(type.getName())).arg(name)));
@@ -388,8 +401,7 @@ public class JCQL {
                 UserType ut = (UserType) t;
                 return model.ref(getFullCallName(ut.getTypeName()));
             } else if (t instanceof TupleType) {
-                // TODO figure out how cassandra standard mappers deal with tuples
-                // and what are they mapped to  -- seems like they don't handle tuples
+                // -- seems like datastax client doesn't handle tuples - dealing with it
                 TupleType tt = (TupleType) t;
                 List<DataType> dt = tt.getComponentTypes();
                 JClass dts[] = new JClass[dt.size()];
