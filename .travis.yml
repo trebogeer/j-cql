@@ -2,6 +2,11 @@ language: java
 jdk:
     - oraclejdk7
       #    - oraclejdk8
+notifications:
+    email:
+        recipients:
+        on_success: change
+        on_failure: change
 before_install: cd jcql
 install: mvn clean install
 script: mvn clean verify
