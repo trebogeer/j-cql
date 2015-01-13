@@ -44,6 +44,7 @@ import com.sun.codemodel.JCodeModel;
 import com.sun.codemodel.JDefinedClass;
 import com.sun.codemodel.JExpr;
 import com.sun.codemodel.JFieldVar;
+import com.sun.codemodel.JInvocation;
 import com.sun.codemodel.JMethod;
 import com.sun.codemodel.JMod;
 import com.sun.codemodel.JTypeVar;
@@ -347,22 +348,27 @@ public class JCQL {
             String name = field.getValue0();
             DataType type = field.getValue1();
             if (type.isCollection()) {
-
-                // TODO this is almost a copy paste - extract later
-                JClass ref = model.ref(type.asJavaClass());
                 List<DataType> typeArgs = type.getTypeArguments();
+                JInvocation m;
                 if (typeArgs.size() == 1) {
                     DataType arg = typeArgs.get(0);
-                    ref = ref.narrow(getType(arg));
+                    JClass cl = getType(arg);
+                    m = param.invoke(JCQLUtils.getDataMethod(type.getName()))
+                            .arg(name)
+                            .arg(cl.dotclass());
                 } else if (typeArgs.size() == 2) {
                     DataType arg0 = typeArgs.get(0);
                     DataType arg1 = typeArgs.get(1);
                     JClass argc0 = getType(arg0);
                     JClass argc1 = getType(arg1);
-                    ref = ref.narrow(argc0, argc1);
+                    m = param.invoke(JCQLUtils.getDataMethod(type.getName()))
+                            .arg(name)
+                            .arg(argc0.dotclass()).arg(argc1.dotclass());
+                } else {
+                    throw new RuntimeException(String.format("Unsupported arguments count %d: ", typeArgs.size()));
                 }
-                // TODO figure out parametrization
-               // body.add(bean.invoke("set" + camelize(name)).arg(param.iref).arg(name));
+                body.add(bean.invoke("set" + camelize(name))
+                        .arg(m));
             } else if (type.isFrozen()) {
                 if (type instanceof UserType) {
                     UserType ut = (UserType) type;

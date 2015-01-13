@@ -20,7 +20,8 @@ CREATE TABLE jcql.accounts (
    name text,
    addr frozen<address>,
    settest set<text>,
-   maptest map<int, text>
+   maptest map<int, text>,
+   map2test map<int, frozen <phone>>
 );
 
 CREATE TABLE jcql.tuple_test (
