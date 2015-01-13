@@ -1,11 +1,21 @@
+---
 schema:
   jcql
 
-insert_phone:
-    INSERT INTO jcql.phone VALUES (?,?)
+# cql statements to generate java code for
+#
+# all statements along with metadata should be separated by --- from
+# each other
 
-get_all:
-    SELECT * FORM jcql.phone
+---
+insert_simple:
+    INSERT INTO jcql.simple (key, value) VALUES (?,?)
 
-delete_all:
-    DELETE * FROM jcq.phone
+---
+get_all_simple:
+    SELECT * FROM jcql.simple
+
+---
+delete_simple:
+    DELETE FROM jcql.simple WHERE key = ?
+

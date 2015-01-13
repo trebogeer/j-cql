@@ -32,3 +32,8 @@ CREATE TABLE jcql.tuple_test (
    the5_tuple frozen<tuple<int, float, double, varint, timestamp>>,
    the6_tuple frozen<tuple<int, float, double, varint, tuple<int, text>, text>>
 );
+
+CREATE TABLE jcql.simple (
+    key text PRIMARY KEY,
+    value text,
+);

@@ -19,8 +19,11 @@ package com.trebogeer.jcql;
 
 
 import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.ColumnDefinitions;
 import com.datastax.driver.core.ColumnMetadata;
 import com.datastax.driver.core.DataType;
+import com.datastax.driver.core.PreparedId;
+import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.TableMetadata;
 import com.datastax.driver.core.TupleType;
@@ -47,8 +50,6 @@ import com.sun.codemodel.JTypeVar;
 import com.sun.codemodel.JVar;
 import com.sun.codemodel.writer.SingleStreamCodeWriter;
 import org.javatuples.Pair;
-import org.javatuples.Triplet;
-import org.javatuples.Tuple;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.slf4j.Logger;
@@ -60,10 +61,14 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Field;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
+
+import static com.trebogeer.jcql.JCQLUtils.camelize;
 
 /**
  * @author Dmitry Vasilyev
@@ -132,26 +137,11 @@ public class JCQL {
             tables.putAll(name, fields);
         }
 
-        if (cfg.cqlFile != null && !"".equals(cfg.cqlFile.trim())) {
-            File cql = new File(cfg.cqlFile);
-            if (!cql.exists() || !cql.isFile()) {
-                throw new RuntimeException(
-                        String.format(
-                                "CQL file specified '%s' either " +
-                                        "does not exist or is not a file.", cfg.cqlFile));
-                
-            }
-            try (InputStream is = new FileInputStream(cql)) {
-                Yaml yaml = new Yaml();
-                for (Object data : yaml.loadAll(is)) {
-                    System.out.println(data);
-                }
-            }
 
-        }
-        
+        generateModelCode(beans, tables, partitionKeys);
+        generateAccessCode(s);
 
-        JCodeModel model = generateCode(beans, tables, partitionKeys);
+
         if ("y".equalsIgnoreCase(cfg.debug)) {
             model.build(new SingleStreamCodeWriter(System.out));
         } else {
@@ -165,7 +155,83 @@ public class JCQL {
         c.close();
     }
 
-    public JCodeModel generateCode(
+
+    private void generateAccessCode(Session s) throws IOException {
+        if (cfg.cqlFile != null && !"".equals(cfg.cqlFile.trim())) {
+            File cql = new File(cfg.cqlFile);
+            if (!cql.exists() || !cql.isFile()) {
+                throw new RuntimeException(
+                        String.format(
+                                "CQL file specified '%s' either " +
+                                        "does not exist or is not a file.", cfg.cqlFile));
+
+            }
+            try (InputStream is = new FileInputStream(cql)) {
+                Yaml yaml = new Yaml();
+                Iterable<Object> it = yaml.loadAll(is);
+                try {
+                    JDefinedClass dao = model._class(JMod.PUBLIC, cfg.jpackage + "." + camelize(cfg.keysapce) + "DAO", ClassType.CLASS);
+                    JFieldVar session_ = dao.field(JMod.FINAL | JMod.PRIVATE, Session.class, "session");
+                    JMethod constructor = dao.constructor(JMod.PUBLIC);
+                    JVar param = constructor.param(Session.class, "session");
+                    constructor.body().assign(JExpr._this().ref(session_), param);
+                    for (Object data : it) {
+                        if (data instanceof LinkedHashMap) {
+                            LinkedHashMap<String, String> map = (LinkedHashMap<String, String>) data;
+                            if (!map.isEmpty()) {
+                                String name = map.entrySet().iterator().next().getKey();
+                                String cqlStatement = map.entrySet().iterator().next().getValue();
+
+                                if (!"schema".equalsIgnoreCase(name)) {
+                                    PreparedStatement ps = s.prepare(cqlStatement);
+                                    ColumnDefinitions ds = ps.getVariables();
+                                    PreparedId meta = ps.getPreparedId();
+                                    // Due to some reasons datastax does not want to expose metadata the same way as JDBC does
+                                    // See - https://datastax-oss.atlassian.net/browse/JAVA-195
+                                    // Ok, reflection then
+                                    ColumnDefinitions metadata = null;
+                                    ColumnDefinitions resultSetMetadata = null;
+                                    try {
+                                        Class<?> c = PreparedId.class;
+                                        Field metadata_F = c.getDeclaredField("metadata");
+                                        metadata_F.setAccessible(true);
+                                        Object o = metadata_F.get(meta);
+                                        if (o instanceof ColumnDefinitions) {
+                                            metadata = (ColumnDefinitions) o;
+                                        } else {
+                                            throw new Exception("metadata is not an instance of ColumnDefinitions");
+                                        }
+
+                                        Field metadata_RS = c.getDeclaredField("resultSetMetadata");
+                                        metadata_RS.setAccessible(true);
+                                        o = metadata_RS.get(meta);
+                                        if (o instanceof ColumnDefinitions) {
+                                            resultSetMetadata = (ColumnDefinitions) o;
+                                        }
+
+                                    } catch (Exception e) {
+                                        throw new RuntimeException("Failed to access metadata or resultsetMetaData of prepared statement.", e);
+                                    }
+                                    String table = resultSetMetadata == null ? metadata.getTable(0) : resultSetMetadata.getTable(0);
+                                    JMethod method = dao.method(JMod.PUBLIC, model.ref(getFullCallName(table)), camelize(name, true));
+                                    for (ColumnDefinitions.Definition cd : ds) {
+                                        method.param(cd.getType().asJavaClass(), camelize(cd.getName(), true));
+                                    }
+                                    method.body()._return(JExpr._null());
+                                }
+                            }
+                        }
+                    }
+                } catch (JClassAlreadyExistsException e) {
+                    throw new RuntimeException("Failed to generate Data Access Object", e);
+                }
+
+            }
+
+        }
+    }
+
+    private void generateModelCode(
             Multimap<String, Pair<String, DataType>> beans,
             Multimap<String, Pair<String, ColumnMetadata>> tables,
             ArrayListMultimap<String, String> partitionKeys) {
@@ -190,7 +256,7 @@ public class JCQL {
 
         for (String cl : beans.keySet()) {
             try {
-                JDefinedClass clazz = JCQLUtils.getBeanClass(cfg.jpackage, JCQLUtils.camelize(cl), model);
+                JDefinedClass clazz = JCQLUtils.getBeanClass(cfg.jpackage, camelize(cl), model);
 
                 // row mapper
                 rowMapperCode(clazz, rowMapper, beans.get(cl));
@@ -210,7 +276,7 @@ public class JCQL {
 
         for (String table : tables.keySet()) {
             try {
-                JDefinedClass clazz = JCQLUtils.getBeanClass(cfg.jpackage, JCQLUtils.camelize(table), model);
+                JDefinedClass clazz = JCQLUtils.getBeanClass(cfg.jpackage, camelize(table), model);
                 // row mapper
                 rowMapperCode(clazz, rowMapper, Collections2.transform(tables.get(table), new Function<Pair<String, ColumnMetadata>, Pair<String, DataType>>() {
                     @Override
@@ -239,7 +305,6 @@ public class JCQL {
                 logger.warn("Class '{}' already exists for table, skipping ", table);
             }
         }
-        return model;
     }
 
     private void javaBeanFieldWithGetterSetter(
@@ -247,7 +312,7 @@ public class JCQL {
             DataType dt, String name, int pko,
             Class<? extends Annotation> ann) {
         JClass ref = getType(dt);
-        JFieldVar f = clazz.field(JMod.PRIVATE, ref, JCQLUtils.camelize(name, true));
+        JFieldVar f = clazz.field(JMod.PRIVATE, ref, camelize(name, true));
         if (ann != null) {
             f.annotate(ann).param("name", name);
         }
@@ -259,9 +324,9 @@ public class JCQL {
         } else if (pko > 0) {
             f.annotate(com.datastax.driver.mapping.annotations.PartitionKey.class).param("value", pko);
         }
-        clazz.method(JMod.PUBLIC, ref, "get" + JCQLUtils.camelize(name)).body()._return(JExpr._this().ref(f));
-        JMethod m = clazz.method(JMod.PUBLIC, ref, "set" + JCQLUtils.camelize(name));
-        JVar p = m.param(ref, JCQLUtils.camelize(name, true));
+        clazz.method(JMod.PUBLIC, ref, "get" + camelize(name)).body()._return(JExpr._this().ref(f));
+        JMethod m = clazz.method(JMod.PUBLIC, ref, "set" + camelize(name));
+        JVar p = m.param(ref, camelize(name, true));
         m.body().assign(JExpr._this().ref(f), p);
     }
 
@@ -287,7 +352,7 @@ public class JCQL {
             } else if (type.isFrozen()) {
                 if (type instanceof UserType) {
                     UserType ut = (UserType) type;
-                    body.add(bean.invoke("set" + JCQLUtils.camelize(name))
+                    body.add(bean.invoke("set" + camelize(name))
                             .arg(model.ref(getFullCallName(ut.getTypeName())).staticInvoke("mapper").invoke("map")
                                     .arg(param.invoke(JCQLUtils.getDataMethod(type.getName())).arg(name))));
                 } else if (type instanceof TupleType) {
@@ -295,7 +360,7 @@ public class JCQL {
                 }
                 // TODO tuple and udt
             } else {
-                body.add(bean.invoke("set" + JCQLUtils.camelize(name))
+                body.add(bean.invoke("set" + camelize(name))
                         .arg(param.invoke(JCQLUtils.getDataMethod(type.getName())).arg(name)));
             }
         }
@@ -339,7 +404,7 @@ public class JCQL {
     }
 
     private String getFullCallName(String name) {
-        return cfg.jpackage + "." + JCQLUtils.camelize(name);
+        return cfg.jpackage + "." + camelize(name);
     }
 
 }
