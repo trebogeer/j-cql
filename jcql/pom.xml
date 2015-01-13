@@ -324,7 +324,7 @@
                         <argument>-k</argument>
                         <argument>${cs.test.ks}</argument>
                         <argument>-d</argument>
-                        <argument>y</argument>
+                        <argument>n</argument>
                         <!--<argument>-cql</argument>-->
                         <!--<argument>${project.basedir}/src/test/resources/cql.yml</argument>-->
                     </arguments>
