@@ -94,7 +94,7 @@ public class JCQL {
         } catch (CmdLineException e) {
             throw new RuntimeException(e);
         }
-        JCQL jcql = new JCQL(cfg);
+        final JCQL jcql = new JCQL(cfg);
         try {
             jcql.exec();
             logger.info("Done!");
