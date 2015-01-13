@@ -1,7 +1,0 @@
-language: java
-jdk:
-    - oraclejdk7
-    - oraclejdk8
-before_install: cd jcql
-install: mvn clean install
-script: mvn clean verify
