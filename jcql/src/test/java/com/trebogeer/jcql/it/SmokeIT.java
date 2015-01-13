@@ -43,9 +43,9 @@ public class SmokeIT {
             Session s = c.connect();
             KeyspaceMetadata r = s.getCluster().getMetadata().getKeyspace(key_space);
 
-            s.execute("INSERT INTO jcql.tuple_test (the_key, the1_tuple) VALUES (1,('abcd'))");
+           // s.execute("INSERT INTO jcql.tuple_test (the_key, the1_tuple) VALUES (1,('abcd'))");
 
-            ResultSet rs = s.execute("SELECT * FORM jcql.tuple_test");
+            /*ResultSet rs = s.execute("SELECT * FORM jcql.tuple_test");
 
             Iterator<Row> iterator = rs.iterator();
             while (!rs.isFullyFetched() & iterator.hasNext()) {
@@ -53,10 +53,10 @@ public class SmokeIT {
                 System.out.println(row.getInt("the_key"));
                 TupleValue tv = row.getTupleValue("the1_tuple");
                 System.out.println(tv);
-            }
+            }*/
             System.out.println(r.exportAsString());
             
-            s.execute("DELETE * FROM jcql.phone");
+           // s.execute("DELETE * FROM jcql.phone");
 
             s.close();
             c.close();
