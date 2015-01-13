@@ -10,7 +10,8 @@
     <name>JCQL</name>
     <inceptionYear>2015</inceptionYear>
     <url>http://github.com/trebogeer/j-cql</url>
-    <description>The tool allowing to generate boilerplate java code (java beans/result set mapper) from existing
+    <description>
+        The tool allowing to generate boilerplate java code (java beans/result set mapper) from existing
         cassandra schema.
     </description>
 
