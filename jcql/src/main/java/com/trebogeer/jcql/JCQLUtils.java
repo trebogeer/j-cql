@@ -30,11 +30,9 @@ import org.javatuples.Quintet;
 import org.javatuples.Septet;
 import org.javatuples.Sextet;
 import org.javatuples.Triplet;
-import org.javatuples.Tuple;
 import org.javatuples.Unit;
 
 import java.util.regex.Matcher;
-
 import java.util.regex.Pattern;
 
 /**
@@ -199,5 +197,22 @@ public class JCQLUtils {
                 throw new IllegalArgumentException(String.format("Unsupported value %d", len));
 
         }
+    }
+
+
+    public static boolean isInteger(String s) {
+        return isInteger(s,10);
+    }
+
+    public static boolean isInteger(String s, int radix) {
+        if(s.isEmpty()) return false;
+        for(int i = 0; i < s.length(); i++) {
+            if(i == 0 && s.charAt(i) == '-') {
+                if(s.length() == 1) return false;
+                else continue;
+            }
+            if(Character.digit(s.charAt(i),radix) < 0) return false;
+        }
+        return true;
     }
 }

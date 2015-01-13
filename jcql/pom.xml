@@ -4,7 +4,7 @@
 
     <groupId>com.trebogeer.jcql</groupId>
     <artifactId>jcql</artifactId>
-    <version>0.9.1-SNAPSHOT</version>
+    <version>0.1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>JCQL</name>
@@ -313,7 +313,7 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <mainClass>com.trebogeer.jcql.JCQL</mainClass>
+                    <mainClass>com.trebogeer.jcql.JCQLMain</mainClass>
                     <arguments>
                         <argument>-gsd</argument>
                         <argument>${project.build.directory}/autogen/</argument>
@@ -325,8 +325,8 @@
                         <argument>${cs.test.ks}</argument>
                         <argument>-d</argument>
                         <argument>y</argument>
-                        <argument>-cql</argument>
-                        <argument>${project.basedir}/src/test/resources/cql.yaml</argument>
+                        <!--<argument>-cql</argument>-->
+                        <!--<argument>${project.basedir}/src/test/resources/cql.yaml</argument>-->
                     </arguments>
                 </configuration>
             </plugin>

@@ -54,7 +54,7 @@ public class Options {
     String jpackage = "com.trebogeer.jcql";
     
     @Option(name = "--cql-file", aliases = {"-cql"})
-    String cqlFile = "/home/dimav/j-cql/jcql/src/test/resources/cql.yaml";
+    String cqlFile = "";//"/home/dimav/j-cql/jcql/src/test/resources/cql.yaml";
 
     @Option(name = "--debug", aliases = "-d")
     String debug = /*"n";*/"y";

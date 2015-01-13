@@ -10,12 +10,41 @@ schema:
 ---
 insert_simple:
     INSERT INTO jcql.simple (key, value) VALUES (?,?)
+return: one
 
 ---
 get_all_simple:
     SELECT * FROM jcql.simple
+return: list
 
 ---
 delete_simple:
     DELETE FROM jcql.simple WHERE key = ?
+return: one
+
+---
+get_account_address:
+    SELECT addr AS address FROM jcql.accounts WHERE email = ?
+return: list
+
+---
+count_accounts:
+    SELECT COUNT(*) AS address_count FROM jcql.accounts
+return: one
+
+---
+select_first_100_accounts:
+    SELECT * FROM jcql.accounts LIMIT 100
+return: list
+
+
+---
+get_accounts_by_emails:
+    SELECT * FROM jcql.accounts WHERE email IN (?,?,?,?)
+return: list
+
+#---
+#get_account_by_testset:
+#    SELECT * FROM jcql.accounts WHERE settest CONTAINS ?
+#return: list
 
