@@ -27,6 +27,7 @@ import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.TableMetadata;
 import com.datastax.driver.core.TupleType;
+import com.datastax.driver.core.TupleValue;
 import com.datastax.driver.core.UserType;
 import com.datastax.driver.mapping.annotations.Column;
 import com.datastax.driver.mapping.annotations.Table;
@@ -41,12 +42,14 @@ import com.sun.codemodel.JBlock;
 import com.sun.codemodel.JClass;
 import com.sun.codemodel.JClassAlreadyExistsException;
 import com.sun.codemodel.JCodeModel;
+import com.sun.codemodel.JConditional;
 import com.sun.codemodel.JDefinedClass;
 import com.sun.codemodel.JExpr;
 import com.sun.codemodel.JFieldVar;
 import com.sun.codemodel.JInvocation;
 import com.sun.codemodel.JMethod;
 import com.sun.codemodel.JMod;
+import com.sun.codemodel.JOp;
 import com.sun.codemodel.JTypeVar;
 import com.sun.codemodel.JVar;
 import com.sun.codemodel.writer.SingleStreamCodeWriter;
@@ -57,6 +60,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;
 
+import javax.swing.*;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -70,6 +74,8 @@ import java.util.List;
 import java.util.Set;
 
 import static com.trebogeer.jcql.JCQLUtils.camelize;
+import static com.trebogeer.jcql.JCQLUtils.getDataMethod;
+import static com.trebogeer.jcql.JCQLUtils.getTupleClass;
 
 /**
  * @author Dmitry Vasilyev
@@ -187,7 +193,7 @@ public class JCQL {
                                     PreparedStatement ps = s.prepare(cqlStatement);
                                     ColumnDefinitions ds = ps.getVariables();
                                     PreparedId meta = ps.getPreparedId();
-                                    // Due to some reasons datastax does not want to expose metadata the same way as JDBC does
+                                    // Due to some reason datastax does not want to expose metadata the same way as JDBC does
                                     // See - https://datastax-oss.atlassian.net/browse/JAVA-195
                                     // Ok, reflection then
                                     ColumnDefinitions metadata = null;
@@ -236,7 +242,6 @@ public class JCQL {
             Multimap<String, Pair<String, DataType>> beans,
             Multimap<String, Pair<String, ColumnMetadata>> tables,
             ArrayListMultimap<String, String> partitionKeys) {
-        // final JDefinedClass rowMapperFactory;
         final JDefinedClass rowMapper;
         try {
             rowMapper = model._class(JMod.PUBLIC, cfg.jpackage + ".RowMapper", ClassType.INTERFACE);
@@ -245,15 +250,6 @@ public class JCQL {
         } catch (Exception e) {
             throw new RuntimeException("Failed to generate mapper interface.", e);
         }
-
-     /*   try {
-            rowMapperFactory = model._class(JMod.PUBLIC, cfg.jpackage + ".RowMapperFactory", ClassType.INTERFACE);
-            JTypeVar jtv = rowMapperFactory.generify("RowMapper<T>");
-            rowMapperFactory.method(JMod.NONE, jtv, " mapper");
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to generate mapper factory interface.", e);
-        }*/
-
 
         for (String cl : beans.keySet()) {
             try {
@@ -333,7 +329,6 @@ public class JCQL {
 
     private void rowMapperCode(JDefinedClass clazz, JClass rowMapper, Collection<Pair<String, DataType>> fields) throws JClassAlreadyExistsException {
         JClass rowMapperNarrowed = rowMapper.narrow(clazz);
-        //  clazz._implements(rowMapperFactory.narrow(rowMapperNarrowed));
         JDefinedClass mapperImpl = clazz._class(
                 JMod.FINAL | JMod.STATIC | JMod.PRIVATE, clazz.name() + "RowMapper")
                 ._implements(rowMapperNarrowed);
@@ -353,7 +348,7 @@ public class JCQL {
                 if (typeArgs.size() == 1) {
                     DataType arg = typeArgs.get(0);
                     JClass cl = getType(arg);
-                    m = param.invoke(JCQLUtils.getDataMethod(type.getName()))
+                    m = param.invoke(getDataMethod(type.getName()))
                             .arg(name)
                             .arg(cl.dotclass());
                 } else if (typeArgs.size() == 2) {
@@ -361,7 +356,7 @@ public class JCQL {
                     DataType arg1 = typeArgs.get(1);
                     JClass argc0 = getType(arg0);
                     JClass argc1 = getType(arg1);
-                    m = param.invoke(JCQLUtils.getDataMethod(type.getName()))
+                    m = param.invoke(getDataMethod(type.getName()))
                             .arg(name)
                             .arg(argc0.dotclass()).arg(argc1.dotclass());
                 } else {
@@ -374,13 +369,27 @@ public class JCQL {
                     UserType ut = (UserType) type;
                     body.add(bean.invoke("set" + camelize(name))
                             .arg(model.ref(getFullCallName(ut.getTypeName())).staticInvoke("mapper").invoke("map")
-                                    .arg(param.invoke(JCQLUtils.getDataMethod(type.getName())).arg(name))));
+                                    .arg(param.invoke(getDataMethod(type.getName())).arg(name))));
                 } else if (type instanceof TupleType) {
+                    TupleType tt = (TupleType) type;
+                    List<DataType> dt = tt.getComponentTypes();
+                    JClass dts[] = new JClass[dt.size()];
+                    for (int i = 0; i < dts.length; i++) {
+                        dts[i] = getType(dt.get(i));
+                    }
+                    JVar t = body.decl(model.ref(TupleValue.class), camelize(name, true), param.invoke(getDataMethod(type.getName())).arg(name));
+                    JConditional iffy = body._if(t.ne(JExpr._null()).cand(JOp.not(t.invoke("isNull"))));
+                    JBlock ifbody = iffy._then();
+                    JInvocation tc = JExpr._new(model.ref(getTupleClass(dts.length)));
+                    for (int i = 0; i < dts.length; i++) {
+                        tc = tc.arg(t.invoke(getDataMethod(dt.get(i).getName())));
+                    }
+                    ifbody.add(bean.invoke("set" + camelize(name)).arg(tc));
 
                 }
             } else {
                 body.add(bean.invoke("set" + camelize(name))
-                        .arg(param.invoke(JCQLUtils.getDataMethod(type.getName())).arg(name)));
+                        .arg(param.invoke(getDataMethod(type.getName())).arg(name)));
             }
         }
         body._return(JExpr.direct("entity"));
@@ -414,7 +423,7 @@ public class JCQL {
                 for (int i = 0; i < dts.length; i++) {
                     dts[i] = getType(dt.get(i));
                 }
-                return model.ref(JCQLUtils.getTupleClass(dts.length)).narrow(dts);
+                return model.ref(getTupleClass(dts.length)).narrow(dts);
             }
 
         }

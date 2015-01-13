@@ -21,6 +21,7 @@ import com.datastax.driver.core.KeyspaceMetadata;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.TupleValue;
 import org.junit.Test;
 
 import java.util.Iterator;
@@ -42,15 +43,16 @@ public class SmokeIT {
             Session s = c.connect();
             KeyspaceMetadata r = s.getCluster().getMetadata().getKeyspace(key_space);
 
-            s.execute("INSERT INTO jcql.phone VALUES ('work','623-34-5687')");
+            s.execute("INSERT INTO jcql.tuple_test (the_key, the1_tuple) VALUES (1,('abcd'))");
 
-            ResultSet rs = s.execute("SELECT * FORM jcql.phone");
+            ResultSet rs = s.execute("SELECT * FORM jcql.tuple_test");
 
             Iterator<Row> iterator = rs.iterator();
             while (!rs.isFullyFetched() & iterator.hasNext()) {
                 Row row = iterator.next();
-                System.out.println(row.getString("alias"));
-                System.out.println(row.getString("number"));
+                System.out.println(row.getInt("the_key"));
+                TupleValue tv = row.getTupleValue("the1_tuple");
+                System.out.println(tv);
             }
             System.out.println(r.exportAsString());
             
