@@ -17,12 +17,10 @@
 package com.trebogeer.jcql.it;
 
 import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.KeyspaceMetadata;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.TupleValue;
-import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.Iterator;
