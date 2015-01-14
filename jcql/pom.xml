@@ -382,6 +382,9 @@
                     <execution>
                         <id>gen-jar</id>
                         <phase>pre-integration-test</phase>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
                     </execution>
                 </executions>
             </plugin>
