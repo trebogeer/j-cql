@@ -325,7 +325,7 @@ public class JCQLMain {
             f.annotate(com.datastax.driver.mapping.annotations.PartitionKey.class).param("value", pko);
         }
         clazz.method(JMod.PUBLIC, ref, "get" + camelize(name)).body()._return(JExpr._this().ref(f));
-        JMethod m = clazz.method(JMod.PUBLIC, ref, "set" + camelize(name));
+        JMethod m = clazz.method(JMod.PUBLIC, Void.TYPE, "set" + camelize(name));
         JVar p = m.param(ref, camelize(name, true));
         m.body().assign(JExpr._this().ref(f), p);
     }
@@ -374,7 +374,9 @@ public class JCQLMain {
                             .arg(mapUDT(name, ut, param, type)));
                 } else if (type instanceof TupleType) {
                     TupleType tt = (TupleType) type;
-                    mapTuple(tt, body, name, param, bean, type);
+                    JBlock cond = body._if(JOp.not(param.invoke("isNull")
+                                    .arg(JExpr.lit(name))))._then();
+                            mapTuple(tt, cond, name, param, bean, type);
 
                 }
             } else {
@@ -393,7 +395,9 @@ public class JCQLMain {
             dts[i] = getType(dt.get(i));
         }
         JVar t = body.decl(model.ref(TupleValue.class), camelize(name, true), param.invoke(getDataMethod(type.getName())).arg(name));
-        JConditional iffy = body._if(t.ne(JExpr._null()).cand(JOp.not(t.invoke("isNull"))));
+        JConditional iffy = body._if(t.ne(JExpr._null())/*.cand(JOp.not(t.invoke("isNull")
+                // have to use this hack for now as well.
+                .arg(isInteger(name) ? JExpr.lit(Integer.valueOf(name)) : JExpr.lit(name))))*/);
         JBlock ifbody = iffy._then();
         JInvocation tc = JExpr._new(model.ref(getTupleClass(dts.length)));
         for (int i = 0; i < dts.length; i++) {
