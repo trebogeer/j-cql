@@ -22,9 +22,12 @@ import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.TupleValue;
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.Iterator;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  * @author dimav
@@ -37,26 +40,34 @@ public class SmokeIT {
     static String key_space = System.getProperty("testks", "jcql");
 
     @Test
-    public void test() throws Exception {
-        try {
-            Cluster c = Cluster.builder().addContactPoint("localhost").withPort(port).build();
-            Session s = c.connect();
-            KeyspaceMetadata r = s.getCluster().getMetadata().getKeyspace(key_space);
+    public void test0() throws Exception {
+        try (
+                Cluster c = Cluster.builder().addContactPoint("localhost").withPort(port).build();
+                Session s = c.connect(key_space)
+        ) {
+            // KeyspaceMetadata r = s.getCluster().getMetadata().getKeyspace(key_space);
 
-           // s.execute("INSERT INTO jcql.tuple_test (the_key, the1_tuple) VALUES (1,('abcd'))");
+            s.execute("INSERT INTO jcql.tuple_test (the_key, the1_tuple) VALUES (1,('abcd'))");
 
-            /*ResultSet rs = s.execute("SELECT * FORM jcql.tuple_test");
+            Row count = s.execute("SELECT COUNT(*) AS cnt FROM jcql.tuple_test").one();
+
+            Long cnt = count.getLong(0);
+
+            assertEquals(cnt, new Long(1));
+
+            ResultSet rs = s.execute("SELECT * FROM jcql.tuple_test");
 
             Iterator<Row> iterator = rs.iterator();
             while (!rs.isFullyFetched() & iterator.hasNext()) {
                 Row row = iterator.next();
-                System.out.println(row.getInt("the_key"));
+                Integer i = row.getInt("the_key");
+                assertEquals(i, new Integer(1));
                 TupleValue tv = row.getTupleValue("the1_tuple");
                 System.out.println(tv);
-            }*/
-            System.out.println(r.exportAsString());
-            
-           // s.execute("DELETE * FROM jcql.phone");
+            }
+            //System.out.println(r.exportAsString());
+
+            s.execute("TRUNCATE jcql.tuple_test");
 
             s.close();
             c.close();

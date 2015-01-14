@@ -1,6 +1,6 @@
 
 DROP KEYSPACE IF EXISTS jcql;
-CREATE KEYSPACE IF NOT EXISTS jcql WITH REPLICATION = {'class':'NetworkTopologyStrategy'};
+CREATE KEYSPACE IF NOT EXISTS jcql WITH REPLICATION = {'class':'SimpleStrategy', 'replication_factor':1};
 
 CREATE TYPE jcql.phone (
    alias text,
