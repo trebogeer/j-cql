@@ -457,7 +457,7 @@ public class JCQLMain {
                 // have to use this hack for now as well.
                 .arg(isInteger(name) ? JExpr.lit(Integer.valueOf(name)) : JExpr.lit(name))))*/);
         JBlock ifbody = iffy._then();
-        JInvocation tc = JExpr._new(model.ref(getTupleClass(dts.length)));
+        JInvocation tc = model.ref(getTupleClass(dts.length)).staticInvoke("with");
         for (int i = 0; i < dts.length; i++) {
             DataType cdt = dt.get(i);
             if (cdt.isFrozen()) {
@@ -467,11 +467,11 @@ public class JCQLMain {
                 } else if (cdt instanceof TupleType) {
                     TupleType tuple = (TupleType) cdt;
                     // TODO need to support nested tuples. Will do later. Passing Null for now.
-                    tc = tc.arg(JExpr._null());
+                    tc = tc.arg(JExpr.cast(getType(tuple),JExpr._null()));
                 }
             } else if (cdt.isCollection()) {
                 // TODO need to support nested collections within tuples. Will do later. Passing Null for now.
-                tc = tc.arg(JExpr._null());
+                tc = tc.arg(JExpr.cast(getType(cdt),JExpr._null()));
             } else {
                 tc = tc.arg(t.invoke(getDataMethod(dt.get(i).getName())).arg(JExpr.lit(i)));
             }
