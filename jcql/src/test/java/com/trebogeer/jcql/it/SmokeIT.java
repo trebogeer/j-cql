@@ -24,6 +24,8 @@ import com.datastax.driver.core.TupleValue;
 import org.junit.Test;
 
 import java.util.Iterator;
+import java.util.Map;
+import java.util.Objects;
 
 import static org.junit.Assert.assertEquals;
 
@@ -47,6 +49,10 @@ public class SmokeIT {
 
             s.execute("INSERT INTO jcql.tuple_test (the_key, the1_tuple) VALUES (1,('abcd'))");
 
+
+            s.execute("INSERT INTO jcql.accounts (email, map2test) " +
+                    "VALUES ('jaco@pastorius.org',{64:{alias:'bass of doom', number:'934875384'}})");
+
             Row count = s.execute("SELECT COUNT(*) AS cnt FROM jcql.tuple_test").one();
 
             Long cnt = count.getLong(0);
@@ -63,8 +69,15 @@ public class SmokeIT {
                 TupleValue tv = row.getTupleValue("the1_tuple");
                 System.out.println(tv);
             }
-            //System.out.println(r.exportAsString());
 
+            Row row = s.execute("SELECT * FROM jcql.accounts WHERE email = 'jaco@pastorius.org'").one();
+
+            Map m = row.getMap("map2test", Integer.class, Object.class);
+            //System.out.println(r.exportAsString());
+            //System.out.println(m);
+            assertEquals(m.size(), 1);
+
+            s.execute("TRUNCATE jcql.accounts");
             s.execute("TRUNCATE jcql.tuple_test");
 
             s.close();

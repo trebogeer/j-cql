@@ -28,6 +28,7 @@ import com.datastax.driver.core.Session;
 import com.datastax.driver.core.TableMetadata;
 import com.datastax.driver.core.TupleType;
 import com.datastax.driver.core.TupleValue;
+import com.datastax.driver.core.UDTValue;
 import com.datastax.driver.core.UserType;
 import com.datastax.driver.mapping.annotations.Column;
 import com.datastax.driver.mapping.annotations.Table;
@@ -45,7 +46,9 @@ import com.sun.codemodel.JCodeModel;
 import com.sun.codemodel.JConditional;
 import com.sun.codemodel.JDefinedClass;
 import com.sun.codemodel.JExpr;
+import com.sun.codemodel.JExpression;
 import com.sun.codemodel.JFieldVar;
+import com.sun.codemodel.JForEach;
 import com.sun.codemodel.JInvocation;
 import com.sun.codemodel.JMethod;
 import com.sun.codemodel.JMod;
@@ -67,9 +70,12 @@ import java.io.InputStream;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static com.trebogeer.jcql.JCQLUtils.camelize;
@@ -346,27 +352,79 @@ public class JCQLMain {
             String name = field.getValue0();
             DataType type = field.getValue1();
             if (type.isCollection()) {
+                JBlock jb = body._if(JOp.not(param.invoke("isNull")
+                        .arg(JExpr.lit(name))))._then();
                 List<DataType> typeArgs = type.getTypeArguments();
-                JInvocation m;
+                JExpression setterExpression;
+
                 if (typeArgs.size() == 1) {
                     DataType arg = typeArgs.get(0);
                     JClass cl = getType(arg);
-                    m = param.invoke(getDataMethod(type.getName()))
+                    JExpression tclass = arg.isFrozen() ?
+                            arg.asJavaClass().isAssignableFrom(UDTValue.class) ?
+                                    model.ref(UDTValue.class).dotclass() : model.ref(TupleValue.class).dotclass()
+                            : cl.dotclass();
+                    setterExpression = param.invoke(getDataMethod(type.getName()))
                             .arg(name)
-                            .arg(cl.dotclass());
+                            .arg(tclass);
+                    if (arg.isFrozen()) {
+                        JClass collectionClass = model.ref(
+                                type.asJavaClass().isAssignableFrom(List.class) ?
+                                        LinkedList.class : HashSet.class).narrow(cl);
+                        JVar collection = jb.decl(collectionClass, camelize(name, true), JExpr._new(collectionClass));
+                        JClass udtValueCollection = model.ref(type.asJavaClass()).narrow(UDTValue.class);
+                        JVar udtCollection = jb.decl(udtValueCollection, camelize(name, true) + "Source", setterExpression);
+                        // TODO handle tuples
+                        JForEach forEach = jb.forEach(model.ref(UDTValue.class), "entry", udtCollection);
+                        JVar var = forEach.var();
+                        JBlock forEachBody = forEach.body();
+                        forEachBody.add(collection.invoke("add").arg(cl.staticInvoke("mapper").invoke("map").arg(var)));
+                        setterExpression = collection;
+                    }
                 } else if (typeArgs.size() == 2) {
                     DataType arg0 = typeArgs.get(0);
                     DataType arg1 = typeArgs.get(1);
                     JClass argc0 = getType(arg0);
                     JClass argc1 = getType(arg1);
-                    m = param.invoke(getDataMethod(type.getName()))
-                            .arg(name)
-                            .arg(argc0.dotclass()).arg(argc1.dotclass());
+                    if (arg0.isFrozen() || arg1.isFrozen()) {
+
+                        JVar hashmap = jb.decl(model.ref(Map.class).narrow(argc0).narrow(argc1)
+                                , camelize(name, true), JExpr._new(model.ref(HashMap.class)));
+                        JExpression arg0csClass = model.ref(arg0.asJavaClass()).dotclass();
+                        JExpression arg1csClass = model.ref(arg1.asJavaClass()).dotclass();
+
+                        JVar frozen = jb.decl(model.ref(Map.class).narrow(arg0.asJavaClass(),
+                                        arg1.asJavaClass()), camelize(name, true) + "Source",
+                                param.invoke(getDataMethod(type.getName()))
+                                        .arg(name)
+                                        .arg(arg0csClass)
+                                        .arg(arg1csClass));
+                        JForEach forEach = jb.forEach(model.ref(Map.Entry.class).narrow(arg0.asJavaClass(),
+                                arg1.asJavaClass()), "entry", frozen.invoke("entrySet"));
+                        JVar var = forEach.var();
+                        JBlock forEachBody = forEach.body();
+
+                        forEachBody.add(hashmap.invoke("put")
+                                        .arg(arg0.isFrozen() ?
+                                                        argc0.staticInvoke("mapper").invoke("map").arg(var.invoke("getKey")) :
+                                                        var.invoke("getKey")
+                                        ).arg(arg1.isFrozen() ?
+                                                argc1.staticInvoke("mapper").invoke("map").arg(var.invoke("getValue")) :
+                                                var.invoke("getValue"))
+                        );
+                        setterExpression = hashmap;
+                    } else {
+                        setterExpression = param.invoke(getDataMethod(type.getName()))
+                                .arg(name)
+                                .arg(argc0.dotclass()).arg(argc1.dotclass());
+                    }
                 } else {
                     throw new RuntimeException(String.format("Unsupported arguments count %d: ", typeArgs.size()));
                 }
-                body.add(bean.invoke("set" + camelize(name))
-                        .arg(m));
+
+
+                jb.add(bean.invoke("set" + camelize(name))
+                        .arg(setterExpression));
             } else if (type.isFrozen()) {
                 if (type instanceof UserType) {
                     UserType ut = (UserType) type;
@@ -375,8 +433,8 @@ public class JCQLMain {
                 } else if (type instanceof TupleType) {
                     TupleType tt = (TupleType) type;
                     JBlock cond = body._if(JOp.not(param.invoke("isNull")
-                                    .arg(JExpr.lit(name))))._then();
-                            mapTuple(tt, cond, name, param, bean, type);
+                            .arg(JExpr.lit(name))))._then();
+                    mapTuple(tt, cond, name, param, bean, type);
 
                 }
             } else {
