@@ -117,6 +117,11 @@ public class JCQLMain {
 
     }
 
+    /**
+     * main routine generating java code
+     *
+     * @throws IOException
+     */
     public void exec() throws IOException {
         String keyspace = cfg.keysapce;
 
@@ -171,12 +176,18 @@ public class JCQLMain {
 
     }
 
-
+    /**
+     * Reads queries and metadata from .yml file and generates java data access layer based on cassandra schema
+     * and obtained metadata.
+     *
+     * @param s cassandra session to use for query execution
+     * @throws IOException thrown if .yml file does not exist or due t inability to read it
+     */
     private void generateAccessCode(Session s) throws IOException {
         if (cfg.cqlFile != null && !"".equals(cfg.cqlFile.trim())) {
             File cql = new File(cfg.cqlFile);
             if (!cql.exists() || !cql.isFile()) {
-                throw new RuntimeException(
+                throw new IOException(
                         String.format(
                                 "CQL file specified '%s' either " +
                                         "does not exist or is not a file.", cfg.cqlFile));
@@ -247,6 +258,13 @@ public class JCQLMain {
         }
     }
 
+    /**
+     * Generates java model (pojos) from existing cassandra CQL schema.
+     *
+     * @param beans udt definitions
+     * @param tables table definitions
+     * @param partitionKeys partition keys from table metadata
+     */
     private void generateModelCode(
             Multimap<String, Pair<String, DataType>> beans,
             Multimap<String, Pair<String, ColumnMetadata>> tables,
@@ -313,6 +331,16 @@ public class JCQLMain {
         }
     }
 
+    /**
+     * Generates private field, getter and setter, some cassandra annotations
+     *
+     * @param clazz pojo definition
+     * @param dt data type of the field to be generated
+     * @param name name of the filed
+     * @param pko order of partition key if composite
+     * @param ann  either @Field or @Column datastax annotation
+     *             depending on whether table or udt is processed by method
+     */
     private void javaBeanFieldWithGetterSetter(
             JDefinedClass clazz,
             DataType dt, String name, int pko,
@@ -336,6 +364,13 @@ public class JCQLMain {
         m.body().assign(JExpr._this().ref(f), p);
     }
 
+    /**
+     * Generates row mapper code for a specified pojo
+     * @param clazz pojo class
+     * @param rowMapper RowMapper interface
+     * @param fields fields to map
+     * @throws JClassAlreadyExistsException thrown if class already exists in code model
+     */
     private void rowMapperCode(JDefinedClass clazz, JClass rowMapper, Collection<Pair<String, DataType>> fields) throws JClassAlreadyExistsException {
         JClass rowMapperNarrowed = rowMapper.narrow(clazz);
         JDefinedClass mapperImpl = clazz._class(
@@ -446,6 +481,16 @@ public class JCQLMain {
         clazz.method(JMod.PUBLIC | JMod.STATIC, rowMapperNarrowed, "mapper").body()._return(JExpr.direct("mapper"));
     }
 
+    /**
+     * Maps tuple cassandra type to java tuple as a part of RowMapper#map(GettableData data) call
+     *
+     * @param tt  cassandra tuple type
+     * @param body body to append code to
+     * @param name name of a filed of type tuple
+     * @param param map method argument - raw casandra type
+     * @param bean bean to invoke setter on
+     * @param type
+     */
     private void mapTuple(TupleType tt, JBlock body, String name, JVar param, JVar bean, DataType type) {
         List<DataType> dt = tt.getComponentTypes();
         JClass dts[] = new JClass[dt.size()];
@@ -453,9 +498,7 @@ public class JCQLMain {
             dts[i] = getType(dt.get(i));
         }
         JVar t = body.decl(model.ref(TupleValue.class), camelize(name, true), param.invoke(getDataMethod(type.getName())).arg(name));
-        JConditional iffy = body._if(t.ne(JExpr._null())/*.cand(JOp.not(t.invoke("isNull")
-                // have to use this hack for now as well.
-                .arg(isInteger(name) ? JExpr.lit(Integer.valueOf(name)) : JExpr.lit(name))))*/);
+        JConditional iffy = body._if(t.ne(JExpr._null()));
         JBlock ifbody = iffy._then();
         JInvocation tc = model.ref(getTupleClass(dts.length)).staticInvoke("with");
         for (int i = 0; i < dts.length; i++) {
