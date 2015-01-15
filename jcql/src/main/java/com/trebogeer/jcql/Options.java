@@ -61,4 +61,26 @@ public class Options {
 
     @Option(name = "--info", aliases = "-i")
     String printInfo = "n";
+
+    @Option(name = "--toString", aliases = "-ts")
+    String toString = "y";
+
+    @Override
+    public String toString() {
+        return "Options{" +
+                "generatedSourceDir='" + generatedSourceDir + '\'' +
+                ", dbHost='" + dbHost + '\'' +
+                ", dbPort='" + dbPort + '\'' +
+                ", userName='" + userName + '\'' +
+                ", password='" + password + '\'' +
+                ", keysapce='" + keysapce + '\'' +
+                ", config='" + config + '\'' +
+                ", app='" + app + '\'' +
+                ", jpackage='" + jpackage + '\'' +
+                ", cqlFile='" + cqlFile + '\'' +
+                ", debug='" + debug + '\'' +
+                ", printInfo='" + printInfo + '\'' +
+                ", toString='" + toString + '\'' +
+                '}';
+    }
 }

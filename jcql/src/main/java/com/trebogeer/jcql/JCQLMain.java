@@ -18,10 +18,12 @@
 package com.trebogeer.jcql;
 
 
+import com.datastax.driver.core.AuthProvider;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.ColumnDefinitions;
 import com.datastax.driver.core.ColumnMetadata;
 import com.datastax.driver.core.DataType;
+import com.datastax.driver.core.PlainTextAuthProvider;
 import com.datastax.driver.core.PreparedId;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Session;
@@ -126,9 +128,19 @@ public class JCQLMain {
      */
     public void exec() throws IOException {
         String keyspace = cfg.keysapce;
+        Cluster.Builder b = Cluster.builder()
+                .addContactPoint(cfg.dbHost)
+                .withPort(Integer.valueOf(cfg.dbPort));
+        if (cfg.userName != null && !"".equals(cfg.userName.trim())
+                && cfg.password != null && !"".equals(cfg.password.trim())) {
+            b = b.withAuthProvider(new PlainTextAuthProvider(cfg.userName, cfg.password));
+        } else {
+            logger.info("No auth will be used. Either credentials are not provided or are incorrect.");
+        }
+
 
         try (
-                Cluster c = Cluster.builder().addContactPoint(cfg.dbHost).withPort(Integer.valueOf(cfg.dbPort)).build();
+                Cluster c = b.build();
                 Session s = c.connect(keyspace)
         ) {
 
@@ -164,6 +176,10 @@ public class JCQLMain {
 
             generateModelCode(beans, tables, partitionKeys);
             generateAccessCode(s);
+
+            if ("y".equalsIgnoreCase(cfg.toString)) {
+                toStringMethods();
+            }
 
             if ("y".equalsIgnoreCase(cfg.printInfo)) {
                 info();
@@ -598,8 +614,23 @@ public class JCQLMain {
             if (jdc.isClass()) {
                 JMethod jMethod = jdc.method(JMod.PUBLIC, model.ref(String.class), "toString");
                 JBlock body = jMethod.body();
-               // for (JFieldVar f : jdc.fields())
-               // body._return(JExpr.);
+                JVar sb = body.decl(
+                        JMod.FINAL, model.ref(StringBuilder.class),
+                        "sb", JExpr._new(model.ref(StringBuilder.class))
+                );
+                body.add(sb.invoke("append").arg("{ ").invoke("append").arg(jdc.name()).invoke("append").arg(": {"));
+                int size = jdc.fields().size();
+                for (Map.Entry<String, JFieldVar> f : jdc.fields().entrySet()) {
+                    body.add(sb.invoke("append").arg(f.getKey())
+                            .invoke("append").arg("=")
+                            .invoke("append").arg(f.getValue()));
+                    if (size != 1) {
+                        body.add(sb.invoke("append").arg(","));
+                    }
+                    size--;
+                }
+                body.add(sb.invoke("append").arg("}}"));
+                body._return(sb.invoke("toString"));
             }
         }
     }

@@ -357,7 +357,10 @@
                         <argument>-d</argument>
                         <argument>n</argument>
                         <argument>-i</argument>
+                        <argument>n</argument>
+                        <argument>-ts</argument>
                         <argument>y</argument>
+
                         <!--<argument>-cql</argument>-->
                         <!--<argument>${project.basedir}/src/test/resources/cql.yml</argument>-->
                     </arguments>
