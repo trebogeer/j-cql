@@ -25,7 +25,6 @@ import org.junit.Test;
 
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Objects;
 
 import static org.junit.Assert.assertEquals;
 
@@ -80,8 +79,6 @@ public class SmokeIT {
             s.execute("TRUNCATE jcql.accounts");
             s.execute("TRUNCATE jcql.tuple_test");
 
-            s.close();
-            c.close();
         } catch (Exception t) {
             t.printStackTrace();
             throw t;

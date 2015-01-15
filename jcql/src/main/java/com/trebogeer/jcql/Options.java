@@ -59,4 +59,6 @@ public class Options {
     @Option(name = "--debug", aliases = "-d")
     String debug = "n";
 
+    @Option(name = "--info", aliases = "-i")
+    String printInfo = "n";
 }

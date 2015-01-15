@@ -53,6 +53,7 @@ import com.sun.codemodel.JInvocation;
 import com.sun.codemodel.JMethod;
 import com.sun.codemodel.JMod;
 import com.sun.codemodel.JOp;
+import com.sun.codemodel.JPackage;
 import com.sun.codemodel.JTypeVar;
 import com.sun.codemodel.JVar;
 import com.sun.codemodel.writer.SingleStreamCodeWriter;
@@ -72,6 +73,7 @@ import java.lang.reflect.Field;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -163,7 +165,9 @@ public class JCQLMain {
             generateModelCode(beans, tables, partitionKeys);
             generateAccessCode(s);
 
-
+            if ("y".equalsIgnoreCase(cfg.printInfo)) {
+                info();
+            }
             if ("y".equalsIgnoreCase(cfg.debug)) {
                 model.build(new SingleStreamCodeWriter(System.out));
             } else {
@@ -261,8 +265,8 @@ public class JCQLMain {
     /**
      * Generates java model (pojos) from existing cassandra CQL schema.
      *
-     * @param beans udt definitions
-     * @param tables table definitions
+     * @param beans         udt definitions
+     * @param tables        table definitions
      * @param partitionKeys partition keys from table metadata
      */
     private void generateModelCode(
@@ -335,11 +339,11 @@ public class JCQLMain {
      * Generates private field, getter and setter, some cassandra annotations
      *
      * @param clazz pojo definition
-     * @param dt data type of the field to be generated
-     * @param name name of the filed
-     * @param pko order of partition key if composite
-     * @param ann  either @Field or @Column datastax annotation
-     *             depending on whether table or udt is processed by method
+     * @param dt    data type of the field to be generated
+     * @param name  name of the filed
+     * @param pko   order of partition key if composite
+     * @param ann   either @Field or @Column datastax annotation
+     *              depending on whether table or udt is processed by method
      */
     private void javaBeanFieldWithGetterSetter(
             JDefinedClass clazz,
@@ -366,9 +370,10 @@ public class JCQLMain {
 
     /**
      * Generates row mapper code for a specified pojo
-     * @param clazz pojo class
+     *
+     * @param clazz     pojo class
      * @param rowMapper RowMapper interface
-     * @param fields fields to map
+     * @param fields    fields to map
      * @throws JClassAlreadyExistsException thrown if class already exists in code model
      */
     private void rowMapperCode(JDefinedClass clazz, JClass rowMapper, Collection<Pair<String, DataType>> fields) throws JClassAlreadyExistsException {
@@ -424,7 +429,8 @@ public class JCQLMain {
                     if (arg0.isFrozen() || arg1.isFrozen()) {
 
                         JVar hashmap = jb.decl(model.ref(Map.class).narrow(argc0).narrow(argc1)
-                                , camelize(name, true), JExpr._new(model.ref(HashMap.class)));
+                                , camelize(name, true), JExpr._new(model.ref(HashMap.class)
+                                .narrow(argc0).narrow(argc1)));
                         JExpression arg0csClass = model.ref(arg0.asJavaClass()).dotclass();
                         JExpression arg1csClass = model.ref(arg1.asJavaClass()).dotclass();
 
@@ -484,11 +490,11 @@ public class JCQLMain {
     /**
      * Maps tuple cassandra type to java tuple as a part of RowMapper#map(GettableData data) call
      *
-     * @param tt  cassandra tuple type
-     * @param body body to append code to
-     * @param name name of a filed of type tuple
+     * @param tt    cassandra tuple type
+     * @param body  body to append code to
+     * @param name  name of a filed of type tuple
      * @param param map method argument - raw casandra type
-     * @param bean bean to invoke setter on
+     * @param bean  bean to invoke setter on
      * @param type
      */
     private void mapTuple(TupleType tt, JBlock body, String name, JVar param, JVar bean, DataType type) {
@@ -510,11 +516,11 @@ public class JCQLMain {
                 } else if (cdt instanceof TupleType) {
                     TupleType tuple = (TupleType) cdt;
                     // TODO need to support nested tuples. Will do later. Passing Null for now.
-                    tc = tc.arg(JExpr.cast(getType(tuple),JExpr._null()));
+                    tc = tc.arg(JExpr.cast(getType(tuple), JExpr._null()));
                 }
             } else if (cdt.isCollection()) {
                 // TODO need to support nested collections within tuples. Will do later. Passing Null for now.
-                tc = tc.arg(JExpr.cast(getType(cdt),JExpr._null()));
+                tc = tc.arg(JExpr.cast(getType(cdt), JExpr._null()));
             } else {
                 tc = tc.arg(t.invoke(getDataMethod(dt.get(i).getName())).arg(JExpr.lit(i)));
             }
@@ -565,6 +571,37 @@ public class JCQLMain {
 
     private String getFullCallName(String name) {
         return cfg.jpackage + "." + camelize(name);
+    }
+
+    private void info() {
+        logger.info("==================================================================");
+        logger.info("Code Model Info :");
+        logger.info("Artifacts Count : {}", model.countArtifacts());
+        logger.info("Packages : ");
+        Iterator<JPackage> it = model.packages();
+        while (it.hasNext()) {
+            JPackage jp;
+            logger.info((jp = it.next()).name());
+            Iterator<JDefinedClass> classIterator = jp.classes();
+            while (classIterator.hasNext())
+                logger.info("'- " + classIterator.next().fullName());
+        }
+        logger.info("==================================================================");
+    }
+
+
+    private void toStringMethods() {
+        Iterator<JPackage> jPackageIterator = model.packages();
+        while (jPackageIterator.hasNext()) {
+            Iterator<JDefinedClass> jDefinedClassIterator = jPackageIterator.next().classes();
+            JDefinedClass jdc = jDefinedClassIterator.next();
+            if (jdc.isClass()) {
+                JMethod jMethod = jdc.method(JMod.PUBLIC, model.ref(String.class), "toString");
+                JBlock body = jMethod.body();
+               // for (JFieldVar f : jdc.fields())
+               // body._return(JExpr.);
+            }
+        }
     }
 
 }

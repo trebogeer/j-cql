@@ -93,6 +93,31 @@
 
     <profiles>
         <profile>
+            <id>install-file</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-install-plugin</artifactId>
+                        <version>2.5.2</version>
+                        <executions>
+                            <execution>
+                                <id>install-local-repo</id>
+                                <phase>post-integration-test</phase>
+                                <goals>
+                                    <goal>install-file</goal>
+                                </goals>
+                                <configuration>
+                                    <file>${project.build.directory}/autogen-jar/${cs.test.ks}-${project.version}.jar
+                                    </file>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
             <id>release</id>
             <build>
                 <plugins>
@@ -331,6 +356,8 @@
                         <argument>${cs.test.ks}</argument>
                         <argument>-d</argument>
                         <argument>n</argument>
+                        <argument>-i</argument>
+                        <argument>y</argument>
                         <!--<argument>-cql</argument>-->
                         <!--<argument>${project.basedir}/src/test/resources/cql.yml</argument>-->
                     </arguments>
