@@ -18,7 +18,6 @@
 package com.trebogeer.jcql;
 
 
-import com.datastax.driver.core.AuthProvider;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.ColumnDefinitions;
 import com.datastax.driver.core.ColumnMetadata;
@@ -610,27 +609,31 @@ public class JCQLMain {
         Iterator<JPackage> jPackageIterator = model.packages();
         while (jPackageIterator.hasNext()) {
             Iterator<JDefinedClass> jDefinedClassIterator = jPackageIterator.next().classes();
-            JDefinedClass jdc = jDefinedClassIterator.next();
-            if (jdc.isClass()) {
-                JMethod jMethod = jdc.method(JMod.PUBLIC, model.ref(String.class), "toString");
-                JBlock body = jMethod.body();
-                JVar sb = body.decl(
-                        JMod.FINAL, model.ref(StringBuilder.class),
-                        "sb", JExpr._new(model.ref(StringBuilder.class))
-                );
-                body.add(sb.invoke("append").arg("{ ").invoke("append").arg(jdc.name()).invoke("append").arg(": {"));
-                int size = jdc.fields().size();
-                for (Map.Entry<String, JFieldVar> f : jdc.fields().entrySet()) {
-                    body.add(sb.invoke("append").arg(f.getKey())
-                            .invoke("append").arg("=")
-                            .invoke("append").arg(f.getValue()));
-                    if (size != 1) {
-                        body.add(sb.invoke("append").arg(","));
+            while (jDefinedClassIterator.hasNext()) {
+                JDefinedClass jdc = jDefinedClassIterator.next();
+                if (jdc.isClass() && !jdc.isInterface()) {
+                    JMethod jMethod = jdc.method(JMod.PUBLIC, model.ref(String.class), "toString");
+                    JBlock body = jMethod.body();
+                    JVar sb = body.decl(
+                            JMod.FINAL, model.ref(StringBuilder.class),
+                            "sb", JExpr._new(model.ref(StringBuilder.class))
+                    );
+                    body.add(sb.invoke("append").arg("{").invoke("append").arg(jdc.name()).invoke("append").arg(":{"));
+                    int size = jdc.fields().size();
+                    for (Map.Entry<String, JFieldVar> f : jdc.fields().entrySet()) {
+                        if (!f.getValue().type().fullName().contains("RowMapper")) {
+                            body.add(sb.invoke("append").arg(f.getKey())
+                                    .invoke("append").arg("=")
+                                    .invoke("append").arg(f.getValue()));
+                            if (size != 1) {
+                                body.add(sb.invoke("append").arg(","));
+                            }
+                        }
+                        size--;
                     }
-                    size--;
+                    body.add(sb.invoke("append").arg("}}"));
+                    body._return(sb.invoke("toString"));
                 }
-                body.add(sb.invoke("append").arg("}}"));
-                body._return(sb.invoke("toString"));
             }
         }
     }
