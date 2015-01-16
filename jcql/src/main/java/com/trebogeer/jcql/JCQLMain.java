@@ -39,7 +39,6 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-import com.sun.codemodel.ClassType;
 import com.sun.codemodel.JBlock;
 import com.sun.codemodel.JClass;
 import com.sun.codemodel.JClassAlreadyExistsException;
@@ -81,7 +80,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static com.sun.codemodel.ClassType.*;
+import static com.sun.codemodel.ClassType.CLASS;
+import static com.sun.codemodel.ClassType.INTERFACE;
 import static com.sun.codemodel.JExpr.lit;
 import static com.sun.codemodel.JMod.NONE;
 import static com.sun.codemodel.JMod.PUBLIC;
@@ -170,7 +170,7 @@ public class JCQLMain {
                     partitionKeys.put(name, clmdt.getName());
                 }
                 partitionKeys.trimToSize();
-                Set<Pair<String, ColumnMetadata>> fields = new HashSet<Pair<String, ColumnMetadata>>();
+                Set<Pair<String, ColumnMetadata>> fields = new HashSet<>();
                 for (ColumnMetadata field : t.getColumns()) {
                     fields.add(Pair.with(field.getName(), field));
                 }
@@ -373,6 +373,15 @@ public class JCQLMain {
         }
     }
 
+    /**
+     * Maps pojo to UDT for subsequent update/insert.
+     *
+     * @param clazz     pojo class
+     * @param udtMapper to udt mapper interface
+     * @param fields    collection of pojo fields
+     * @param name      name of user type in cassandra ddl
+     * @throws JClassAlreadyExistsException thrown if mapper already exists
+     */
     private void toUDTMapperCode(
             JDefinedClass clazz, JClass udtMapper,
             Collection<Pair<String, DataType>> fields,
@@ -381,7 +390,8 @@ public class JCQLMain {
         JDefinedClass mapperImpl = clazz._class(
                 JMod.FINAL | JMod.STATIC | JMod.PRIVATE, clazz.name() + "ToUDTMapper")
                 ._implements(udtMapperNarrowed);
-        clazz.field(JMod.PRIVATE | JMod.STATIC | JMod.FINAL, mapperImpl, "udt_mapper", JExpr._new(mapperImpl));
+        JVar udtMapperSt = clazz.field(JMod.PRIVATE | JMod.STATIC | JMod.FINAL, mapperImpl, "udt_mapper", JExpr._new(mapperImpl));
+        clazz.method(PUBLIC | JMod.STATIC, udtMapperNarrowed, "udtMapper").body()._return(udtMapperSt);
 
         JMethod toUDT = mapperImpl.method(PUBLIC, model.ref(UDTValue.class), "toUDT");
         JVar param0 = toUDT.param(clazz, "data");
@@ -405,8 +415,27 @@ public class JCQLMain {
             JExpression arg2 = JExpr._null();
             if (dt.isFrozen()) {
 
+                if (dt instanceof UserType) {
+                    arg2 = model.ref(getFullCallName(((UserType)dt).getTypeName()))
+                            .staticInvoke("udtMapper")
+                            .invoke("toUDT").arg(param0.invoke("get" + camelize(fname))).arg(param1);
+                } else if (dt instanceof TupleType) {
+                    // TODO map tuples
+                }
             } else if (dt.isCollection()) {
+                List<DataType> argTypes = dt.getTypeArguments();
+                if (argTypes != null) {
+                    if (argTypes.size() == 1) {
+                        DataType argDt = argTypes.get(0);
+                        if (argDt.isCollection()) {
+                            // TODO cassandra does not support embedded collections yet but might support in future
+                        } else if (argDt.isFrozen()) {
 
+                        } else {
+                            arg2 = param0.invoke("get" + camelize(fname));
+                        }
+                    }
+                }
             } else {
                 arg2 = param0.invoke("get" + camelize(fname));
             }
