@@ -16,7 +16,10 @@
 package com.trebogeer.jcql;
 
 import com.datastax.driver.core.DataType;
+import com.datastax.driver.core.TupleType;
+import com.datastax.driver.core.UserType;
 import com.sun.codemodel.ClassType;
+import com.sun.codemodel.JClass;
 import com.sun.codemodel.JClassAlreadyExistsException;
 import com.sun.codemodel.JCodeModel;
 import com.sun.codemodel.JDefinedClass;
@@ -32,6 +35,8 @@ import org.javatuples.Sextet;
 import org.javatuples.Triplet;
 import org.javatuples.Unit;
 
+import java.util.List;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -248,18 +253,107 @@ public class JCQLUtils {
 
 
     public static boolean isInteger(String s) {
-        return isInteger(s,10);
+        return isInteger(s, 10);
     }
 
     public static boolean isInteger(String s, int radix) {
-        if(s.isEmpty()) return false;
-        for(int i = 0; i < s.length(); i++) {
-            if(i == 0 && s.charAt(i) == '-') {
-                if(s.length() == 1) return false;
+        if (s.isEmpty()) return false;
+        for (int i = 0; i < s.length(); i++) {
+            if (i == 0 && s.charAt(i) == '-') {
+                if (s.length() == 1) return false;
                 else continue;
             }
-            if(Character.digit(s.charAt(i),radix) < 0) return false;
+            if (Character.digit(s.charAt(i), radix) < 0) return false;
         }
         return true;
+    }
+
+    /**
+     * skeleton - need to try to extract common processing flow for all data types and utilize recursion for embedded
+     * data types
+     *
+     * @param dt
+     */
+    public static void processDataType(DataType dt/*, Function<>*/) {
+        if (dt == null) return;
+        if (dt.isFrozen()) {
+            if (dt instanceof UserType) {
+                UserType ut = (UserType) dt;
+                // do processing
+            } else if (dt instanceof TupleType) {
+                TupleType tt = (TupleType) dt;
+                // do processing
+            } else {
+                throw new IllegalArgumentException("Unknown or unsupported Data Type. Frozen but not user typ or tuple");
+            }
+        } else if (dt.isCollection()) {
+            if (dt.getName() == DataType.Name.MAP) {
+                DataType arg0 = dt.getTypeArguments().get(0);
+                DataType arg1 = dt.getTypeArguments().get(1);
+                if (arg0 == null || arg1 == null) {
+                    throw new IllegalStateException("Empty or null type arguments for map.");
+                }
+
+                if (arg0.isFrozen() || arg1.isFrozen()) {
+
+                } else if (arg0.isCollection() || arg1.isCollection()) {
+                    // TODO not supported by cassandra yet. Ignoring for now.
+                }
+
+            } else {
+                DataType arg = dt.getTypeArguments().get(0);
+                if (arg == null) {
+                    throw new IllegalStateException("Empty or null type arguments for list/set.");
+                }
+                if (dt.getName() == DataType.Name.SET) {
+
+
+                } else if (dt.getName() == DataType.Name.LIST) {
+
+
+                }
+            }
+        } else {
+
+        }
+    }
+
+
+    public static JClass getType(DataType t, JCodeModel model, Options cfg) {
+        if (t.isCollection()) {
+            JClass ref = model.ref(t.asJavaClass());
+            List<DataType> typeArgs = t.getTypeArguments();
+            if (typeArgs.size() == 1) {
+                DataType arg = typeArgs.get(0);
+                return ref.narrow(getType(arg, model, cfg));
+            } else if (typeArgs.size() == 2) {
+                DataType arg0 = typeArgs.get(0);
+                DataType arg1 = typeArgs.get(1);
+                JClass argc0 = getType(arg0, model, cfg);
+                JClass argc1 = getType(arg1, model, cfg);
+                return ref.narrow(argc0, argc1);
+            }
+            return ref;
+        } else if (t.isFrozen()) {
+            if (t instanceof UserType) {
+                UserType ut = (UserType) t;
+                return model.ref(getFullClassName(cfg.jpackage, ut.getTypeName()));
+            } else if (t instanceof TupleType) {
+                // -- seems like datastax client doesn't handle tuples - dealing with it
+                TupleType tt = (TupleType) t;
+                List<DataType> dt = tt.getComponentTypes();
+                JClass dts[] = new JClass[dt.size()];
+                for (int i = 0; i < dts.length; i++) {
+                    dts[i] = getType(dt.get(i), model, cfg);
+                }
+                return model.ref(getTupleClass(dts.length)).narrow(dts);
+            }
+
+        }
+        return model.ref(t.asJavaClass());
+    }
+
+    public static String getFullClassName(String jpackage, String name) {
+        return jpackage + "." + camelize(name);
     }
 }

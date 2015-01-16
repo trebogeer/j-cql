@@ -11,6 +11,7 @@ CREATE TYPE jcql.address (
    street text,
    city text,
    zipCode int,
+   tupletest frozen<tuple<phone, text>>,
    primary_phone frozen<phone>,
    phones list<frozen <phone>>
 );

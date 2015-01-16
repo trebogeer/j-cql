@@ -70,6 +70,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -87,7 +88,9 @@ import static com.sun.codemodel.JMod.NONE;
 import static com.sun.codemodel.JMod.PUBLIC;
 import static com.trebogeer.jcql.JCQLUtils.camelize;
 import static com.trebogeer.jcql.JCQLUtils.getDataMethod;
+import static com.trebogeer.jcql.JCQLUtils.getFullClassName;
 import static com.trebogeer.jcql.JCQLUtils.getTupleClass;
+import static com.trebogeer.jcql.JCQLUtils.getType;
 import static com.trebogeer.jcql.JCQLUtils.isInteger;
 import static com.trebogeer.jcql.JCQLUtils.setDataMethod;
 
@@ -264,7 +267,7 @@ public class JCQLMain {
                                         throw new RuntimeException("Failed to access metadata or resultsetMetaData of prepared statement.", e);
                                     }
                                     String table = resultSetMetadata == null ? metadata.getTable(0) : resultSetMetadata.getTable(0);
-                                    JMethod method = dao.method(PUBLIC, model.ref(getFullCallName(table)), camelize(name, true));
+                                    JMethod method = dao.method(PUBLIC, model.ref(getFullClassName(cfg.jpackage, table)), camelize(name, true));
                                     for (ColumnDefinitions.Definition cd : ds) {
                                         method.param(cd.getType().asJavaClass(), camelize(cd.getName(), true));
                                     }
@@ -354,7 +357,7 @@ public class JCQLMain {
                 // fields/getters/setters/annotations
                 clazz.annotate(Table.class).param("keyspace", cfg.keysapce).param("name", table);
                 List<String> pkList = partitionKeys.get(table);
-                Set<String> pks = new HashSet<String>(pkList);
+                Set<String> pks = new HashSet<>(pkList);
 
                 for (Pair<String, ColumnMetadata> field : tables.get(table)) {
                     String fieldName = field.getValue0();
@@ -394,15 +397,15 @@ public class JCQLMain {
         clazz.method(PUBLIC | JMod.STATIC, udtMapperNarrowed, "udtMapper").body()._return(udtMapperSt);
 
         JMethod toUDT = mapperImpl.method(PUBLIC, model.ref(UDTValue.class), "toUDT");
-        JVar param0 = toUDT.param(clazz, "data");
-        JVar param1 = toUDT.param(Session.class, "session");
+        JVar dataUdt = toUDT.param(clazz, "data");
+        JVar session = toUDT.param(Session.class, "session");
         JBlock body = toUDT.body();
 
-        body._if(param0.eq(JExpr._null()))._then()._return(JExpr._null());
-        body._if(param1.eq(JExpr._null()))._then()._throw(JExpr._new(model.ref(IllegalArgumentException.class)).arg("Cassandra Session can't be null."));
+        body._if(dataUdt.eq(JExpr._null()))._then()._return(JExpr._null());
+        body._if(session.eq(JExpr._null()))._then()._throw(JExpr._new(model.ref(IllegalArgumentException.class)).arg("Cassandra Session can't be null."));
 
         JVar userType = body.decl(model.ref(UserType.class), "userType",
-                param1.invoke("getCluster")
+                session.invoke("getCluster")
                         .invoke("getMetadata")
                         .invoke("getKeyspace").arg(lit(cfg.keysapce))
                         .invoke("getUserType").arg(lit(name))
@@ -416,11 +419,58 @@ public class JCQLMain {
             if (dt.isFrozen()) {
 
                 if (dt instanceof UserType) {
-                    arg2 = model.ref(getFullCallName(((UserType)dt).getTypeName()))
+                    arg2 = model.ref(getFullClassName(cfg.jpackage, ((UserType) dt).getTypeName()))
                             .staticInvoke("udtMapper")
-                            .invoke("toUDT").arg(param0.invoke("get" + camelize(fname))).arg(param1);
+                            .invoke("toUDT").arg(dataUdt.invoke("get" + camelize(fname))).arg(session);
                 } else if (dt instanceof TupleType) {
-                    // TODO map tuples
+                    TupleType tt = (TupleType) dt;
+                    List<DataType> componentTypes = tt.getComponentTypes();
+                    Class<?> tupleClass = getTupleClass(componentTypes.size());
+                    JClass tuple = model.ref(tupleClass);
+                    // TODO need to support tuples.
+                    JInvocation of = model.ref(TupleType.class).staticInvoke("of");
+                    for (DataType adt : componentTypes) {
+                        tuple = tuple.narrow(getType(adt, model, cfg));
+                    }
+                    JVar tupleRef = body.decl(tuple, camelize(fname, true) + "Tuple", dataUdt.invoke("get" + camelize(fname)));
+
+                    int i = 0;
+                    ArrayList<JExpression> getvalues = new ArrayList<>(componentTypes.size());
+                    for (DataType adt : componentTypes) {
+                        JExpression jexpr = JExpr._null();
+                        getvalues.add(i, tupleRef.invoke("getValue" + i));
+                        if (adt.isFrozen()) {
+                            if (adt instanceof UserType) {
+                                UserType ut = (UserType) adt;
+                                String tname = ut.getTypeName();
+
+                                JVar udtValue = body.decl(model.ref(UDTValue.class),
+                                        camelize(tname, true),
+                                        model.ref(getFullClassName(cfg.jpackage, tname))
+                                                .staticInvoke("udtMapper").invoke("toUDT")
+                                                .arg(tupleRef.invoke("getValue" + i)).arg(session));
+
+                                JVar userTypeE = body.decl(model.ref(UserType.class), camelize(tname, true) + "UserType",
+                                        udtValue.invoke("getType"));
+                                jexpr = userTypeE;
+                                getvalues.set(i, udtValue);
+                            } else if (adt instanceof TupleType) {
+
+                            }
+                        } else if (adt.isCollection()) {
+
+                        } else {
+                            jexpr = model.ref(DataType.class).staticInvoke(adt.getName().name().toLowerCase());
+                        }
+                        i++;
+                        of.arg(jexpr);
+                    }
+                    JVar ttE = body.decl(model.ref(TupleType.class), camelize(fname, true) + "TupleType", of);
+                    JVar tvE = body.decl(model.ref(TupleValue.class), camelize(fname, true) + "TupleValue", ttE.invoke("newValue"));
+                    for (int a = 0; a < getvalues.size(); a++) {
+                        body.add(tvE.invoke(setDataMethod(componentTypes.get(a).getName())).arg(JExpr.lit(a)).arg(getvalues.get(a)));
+                    }
+                    arg2 = tvE;
                 }
             } else if (dt.isCollection()) {
                 List<DataType> argTypes = dt.getTypeArguments();
@@ -432,12 +482,12 @@ public class JCQLMain {
                         } else if (argDt.isFrozen()) {
 
                         } else {
-                            arg2 = param0.invoke("get" + camelize(fname));
+                            arg2 = dataUdt.invoke("get" + camelize(fname));
                         }
                     }
                 }
             } else {
-                arg2 = param0.invoke("get" + camelize(fname));
+                arg2 = dataUdt.invoke("get" + camelize(fname));
             }
             body.add(udt.invoke(setDataMethod(dt.getName())).arg(lit(fname)).arg(arg2));
 
@@ -461,7 +511,7 @@ public class JCQLMain {
             JDefinedClass clazz,
             DataType dt, String name, int pko,
             Class<? extends Annotation> ann) {
-        JClass ref = getType(dt);
+        JClass ref = getType(dt, model, cfg);
         JFieldVar f = clazz.field(JMod.PRIVATE, ref, camelize(name, true));
         if (ann != null) {
             f.annotate(ann).param("name", name);
@@ -511,7 +561,7 @@ public class JCQLMain {
 
                 if (typeArgs.size() == 1) {
                     DataType arg = typeArgs.get(0);
-                    JClass cl = getType(arg);
+                    JClass cl = getType(arg, model, cfg);
                     JExpression tclass = arg.isFrozen() ?
                             arg.asJavaClass().isAssignableFrom(UDTValue.class) ?
                                     model.ref(UDTValue.class).dotclass() : model.ref(TupleValue.class).dotclass()
@@ -520,24 +570,28 @@ public class JCQLMain {
                             .arg(name)
                             .arg(tclass);
                     if (arg.isFrozen()) {
-                        JClass collectionClass = model.ref(
-                                type.asJavaClass().isAssignableFrom(List.class) ?
-                                        LinkedList.class : HashSet.class).narrow(cl);
-                        JVar collection = jb.decl(collectionClass, camelize(name, true), JExpr._new(collectionClass));
-                        JClass udtValueCollection = model.ref(type.asJavaClass()).narrow(UDTValue.class);
-                        JVar udtCollection = jb.decl(udtValueCollection, camelize(name, true) + "Source", setterExpression);
-                        // TODO handle tuples
-                        JForEach forEach = jb.forEach(model.ref(UDTValue.class), "entry", udtCollection);
-                        JVar var = forEach.var();
-                        JBlock forEachBody = forEach.body();
-                        forEachBody.add(collection.invoke("add").arg(cl.staticInvoke("mapper").invoke("map").arg(var)));
-                        setterExpression = collection;
+                        if (arg instanceof UserType) {
+                            JClass collectionClass = model.ref(
+                                    type.asJavaClass().isAssignableFrom(List.class) ?
+                                            LinkedList.class : HashSet.class).narrow(cl);
+                            JVar collection = jb.decl(collectionClass, camelize(name, true), JExpr._new(collectionClass));
+                            JClass udtValueCollection = model.ref(type.asJavaClass()).narrow(UDTValue.class);
+                            JVar udtCollection = jb.decl(udtValueCollection, camelize(name, true) + "Source", setterExpression);
+
+                            JForEach forEach = jb.forEach(model.ref(UDTValue.class), "entry", udtCollection);
+                            JVar var = forEach.var();
+                            JBlock forEachBody = forEach.body();
+                            forEachBody.add(collection.invoke("add").arg(cl.staticInvoke("mapper").invoke("map").arg(var)));
+                            setterExpression = collection;
+                        } else if (arg instanceof TupleType) {
+                            // TODO handle tuples
+                        }
                     }
                 } else if (typeArgs.size() == 2) {
                     DataType arg0 = typeArgs.get(0);
                     DataType arg1 = typeArgs.get(1);
-                    JClass argc0 = getType(arg0);
-                    JClass argc1 = getType(arg1);
+                    JClass argc0 = getType(arg0, model, cfg);
+                    JClass argc1 = getType(arg1, model, cfg);
                     if (arg0.isFrozen() || arg1.isFrozen()) {
 
                         JVar hashmap = jb.decl(model.ref(Map.class).narrow(argc0).narrow(argc1)
@@ -613,7 +667,7 @@ public class JCQLMain {
         List<DataType> dt = tt.getComponentTypes();
         JClass dts[] = new JClass[dt.size()];
         for (int i = 0; i < dts.length; i++) {
-            dts[i] = getType(dt.get(i));
+            dts[i] = getType(dt.get(i), model, cfg);
         }
         JVar t = body.decl(model.ref(TupleValue.class), camelize(name, true), param.invoke(getDataMethod(type.getName())).arg(name));
         JConditional iffy = body._if(t.ne(JExpr._null()));
@@ -628,11 +682,11 @@ public class JCQLMain {
                 } else if (cdt instanceof TupleType) {
                     TupleType tuple = (TupleType) cdt;
                     // TODO need to support nested tuples. Will do later. Passing Null for now.
-                    tc = tc.arg(JExpr.cast(getType(tuple), JExpr._null()));
+                    tc = tc.arg(JExpr.cast(getType(tuple, model, cfg), JExpr._null()));
                 }
             } else if (cdt.isCollection()) {
                 // TODO need to support nested collections within tuples. Will do later. Passing Null for now.
-                tc = tc.arg(JExpr.cast(getType(cdt), JExpr._null()));
+                tc = tc.arg(JExpr.cast(getType(cdt, model, cfg), JExpr._null()));
             } else {
                 tc = tc.arg(t.invoke(getDataMethod(dt.get(i).getName())).arg(lit(i)));
             }
@@ -641,49 +695,12 @@ public class JCQLMain {
     }
 
     private JInvocation mapUDT(String name, UserType ut, JVar param, DataType type) {
-        return model.ref(getFullCallName(ut.getTypeName())).staticInvoke("mapper").invoke("map")
+        return model.ref(getFullClassName(cfg.jpackage, ut.getTypeName())).staticInvoke("mapper").invoke("map")
                 .arg(param.invoke(getDataMethod(type.getName()))
                         // somewhat very fragile and extremely straightforward but will stick with it form now
                         .arg(isInteger(name) ? lit(Integer.valueOf(name)) : lit(name)));
     }
 
-    private JClass getType(DataType t) {
-        if (t.isCollection()) {
-            JClass ref = model.ref(t.asJavaClass());
-            List<DataType> typeArgs = t.getTypeArguments();
-            if (typeArgs.size() == 1) {
-                DataType arg = typeArgs.get(0);
-                return ref.narrow(getType(arg));
-            } else if (typeArgs.size() == 2) {
-                DataType arg0 = typeArgs.get(0);
-                DataType arg1 = typeArgs.get(1);
-                JClass argc0 = getType(arg0);
-                JClass argc1 = getType(arg1);
-                return ref.narrow(argc0, argc1);
-            }
-            return ref;
-        } else if (t.isFrozen()) {
-            if (t instanceof UserType) {
-                UserType ut = (UserType) t;
-                return model.ref(getFullCallName(ut.getTypeName()));
-            } else if (t instanceof TupleType) {
-                // -- seems like datastax client doesn't handle tuples - dealing with it
-                TupleType tt = (TupleType) t;
-                List<DataType> dt = tt.getComponentTypes();
-                JClass dts[] = new JClass[dt.size()];
-                for (int i = 0; i < dts.length; i++) {
-                    dts[i] = getType(dt.get(i));
-                }
-                return model.ref(getTupleClass(dts.length)).narrow(dts);
-            }
-
-        }
-        return model.ref(t.asJavaClass());
-    }
-
-    private String getFullCallName(String name) {
-        return cfg.jpackage + "." + camelize(name);
-    }
 
     private void info() {
         logger.info("==================================================================");
