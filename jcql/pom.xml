@@ -360,7 +360,7 @@
                         <argument>${cs.test.ks}</argument>
                         <!---debug?-->
                         <argument>-d</argument>
-                        <argument>n</argument>
+                        <argument>y</argument>
                         <!--print info during code generation-->
                         <argument>-i</argument>
                         <argument>n</argument>

@@ -171,6 +171,53 @@ public class JCQLUtils {
         return null;
     }
 
+    public static String setDataMethod(DataType.Name dataTypeName) {
+
+        switch (dataTypeName) {
+            case ASCII:
+            case TEXT:
+            case VARCHAR:
+                return "setString";
+            case BLOB:
+                return "setBytes";
+            case CUSTOM:
+                return "setBytesUnsafe";
+            case BIGINT:
+            case COUNTER:
+                return "setLong";
+            case INT:
+                return "setInt";
+            case DECIMAL:
+                return "setDecimal";
+            case VARINT:
+                return "setVarint";
+            case BOOLEAN:
+                return "setBool";
+            case DOUBLE:
+                return "setDouble";
+            case TIMESTAMP:
+                return "setDate";
+            case FLOAT:
+                return "setFloat";
+            case UUID:
+            case TIMEUUID:
+                return "setUUID";
+            case INET:
+                return "setInet";
+            case LIST:
+                return "setList";
+            case SET:
+                return "setSet";
+            case MAP:
+                return "setMap";
+            case UDT:
+                return "setUDTValue";
+            case TUPLE:
+                return "setTupleValue";
+        }
+        return null;
+    }
+
     public static Class<?> getTupleClass(int len) {
         switch (len) {
             case 1:

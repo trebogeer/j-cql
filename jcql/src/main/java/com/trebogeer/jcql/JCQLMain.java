@@ -89,6 +89,7 @@ import static com.trebogeer.jcql.JCQLUtils.camelize;
 import static com.trebogeer.jcql.JCQLUtils.getDataMethod;
 import static com.trebogeer.jcql.JCQLUtils.getTupleClass;
 import static com.trebogeer.jcql.JCQLUtils.isInteger;
+import static com.trebogeer.jcql.JCQLUtils.setDataMethod;
 
 /**
  * @author Dmitry Vasilyev
@@ -386,6 +387,10 @@ public class JCQLMain {
         JVar param0 = toUDT.param(clazz, "data");
         JVar param1 = toUDT.param(Session.class, "session");
         JBlock body = toUDT.body();
+
+        body._if(param0.eq(JExpr._null()))._then()._return(JExpr._null());
+        body._if(param1.eq(JExpr._null()))._then()._throw(JExpr._new(model.ref(IllegalArgumentException.class)).arg("Cassandra Session can't be null."));
+
         JVar userType = body.decl(model.ref(UserType.class), "userType",
                 param1.invoke("getCluster")
                         .invoke("getMetadata")
@@ -394,7 +399,21 @@ public class JCQLMain {
         );
         JVar udt = body.decl(model.ref(UDTValue.class), "udtValue", userType.invoke("newValue"));
 
-        // TODO populate values
+        for (Pair<String, DataType> field : fields) {
+            DataType dt = field.getValue1();
+            String fname = field.getValue0();
+            JExpression arg2 = JExpr._null();
+            if (dt.isFrozen()) {
+
+            } else if (dt.isCollection()) {
+
+            } else {
+                arg2 = param0.invoke("get" + camelize(fname));
+            }
+            body.add(udt.invoke(setDataMethod(dt.getName())).arg(lit(fname)).arg(arg2));
+
+        }
+
         body._return(udt);
 
     }
