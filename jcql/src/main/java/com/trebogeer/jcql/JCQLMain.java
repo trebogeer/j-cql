@@ -81,6 +81,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static com.sun.codemodel.ClassType.*;
+import static com.sun.codemodel.JExpr.lit;
+import static com.sun.codemodel.JMod.NONE;
+import static com.sun.codemodel.JMod.PUBLIC;
 import static com.trebogeer.jcql.JCQLUtils.camelize;
 import static com.trebogeer.jcql.JCQLUtils.getDataMethod;
 import static com.trebogeer.jcql.JCQLUtils.getTupleClass;
@@ -216,9 +220,9 @@ public class JCQLMain {
                 Yaml yaml = new Yaml();
                 Iterable<Object> it = yaml.loadAll(is);
                 try {
-                    JDefinedClass dao = model._class(JMod.PUBLIC, cfg.jpackage + "." + camelize(cfg.keysapce) + "DAO", ClassType.CLASS);
+                    JDefinedClass dao = model._class(PUBLIC, cfg.jpackage + "." + camelize(cfg.keysapce) + "DAO", CLASS);
                     JFieldVar session_ = dao.field(JMod.FINAL | JMod.PRIVATE, Session.class, "session");
-                    JMethod constructor = dao.constructor(JMod.PUBLIC);
+                    JMethod constructor = dao.constructor(PUBLIC);
                     JVar param = constructor.param(Session.class, "session");
                     constructor.body().assign(JExpr._this().ref(session_), param);
                     for (Object data : it) {
@@ -259,7 +263,7 @@ public class JCQLMain {
                                         throw new RuntimeException("Failed to access metadata or resultsetMetaData of prepared statement.", e);
                                     }
                                     String table = resultSetMetadata == null ? metadata.getTable(0) : resultSetMetadata.getTable(0);
-                                    JMethod method = dao.method(JMod.PUBLIC, model.ref(getFullCallName(table)), camelize(name, true));
+                                    JMethod method = dao.method(PUBLIC, model.ref(getFullCallName(table)), camelize(name, true));
                                     for (ColumnDefinitions.Definition cd : ds) {
                                         method.param(cd.getType().asJavaClass(), camelize(cd.getName(), true));
                                     }
@@ -279,6 +283,7 @@ public class JCQLMain {
 
     /**
      * Generates java model (pojos) from existing cassandra CQL schema.
+     * // TODO - segregate mappers from pojos and make them separately configurable via options. The  whole stack of generated code might not always be needed.
      *
      * @param beans         udt definitions
      * @param tables        table definitions
@@ -288,33 +293,50 @@ public class JCQLMain {
             Multimap<String, Pair<String, DataType>> beans,
             Multimap<String, Pair<String, ColumnMetadata>> tables,
             ArrayListMultimap<String, String> partitionKeys) {
-        final JDefinedClass rowMapper;
+        JDefinedClass rowMapper;
+        JDefinedClass toUDTMapper = null;
         try {
-            rowMapper = model._class(JMod.PUBLIC, cfg.jpackage + ".RowMapper", ClassType.INTERFACE);
+            rowMapper = model._class(PUBLIC, cfg.jpackage + ".RowMapper", INTERFACE);
             JTypeVar jtv = rowMapper.generify("T");
-            rowMapper.method(JMod.NONE, jtv, "map").param(com.datastax.driver.core.GettableData.class, "data");
+            rowMapper.method(NONE, jtv, "map").param(com.datastax.driver.core.GettableData.class, "data");
         } catch (Exception e) {
             throw new RuntimeException("Failed to generate mapper interface.", e);
         }
 
-        for (String cl : beans.keySet()) {
+        if (beans != null && beans.size() > 0) {
             try {
-                JDefinedClass clazz = JCQLUtils.getBeanClass(cfg.jpackage, camelize(cl), model);
-
-                // row mapper
-                rowMapperCode(clazz, rowMapper, beans.get(cl));
-
-                // fields/getters/setters/annotations
-                clazz.annotate(UDT.class).param("keyspace", cfg.keysapce).param("name", cl);
-                for (Pair<String, DataType> field : beans.get(cl)) {
-                    javaBeanFieldWithGetterSetter(clazz, field.getValue1(), field.getValue0(),
-                            -1, com.datastax.driver.mapping.annotations.Field.class);
-
-                }
+                toUDTMapper = model._class(PUBLIC, cfg.jpackage + ".BeanToUDTMapper", INTERFACE);
+                JTypeVar jtv = toUDTMapper.generify("T");
+                JMethod toUDT = toUDTMapper.method(NONE, model.ref(UDTValue.class), "toUDT");
+                JVar toUDTArg0 = toUDT.param(jtv, "data");
+                JVar toUDTArg1 = toUDT.param(Session.class, "session");
             } catch (JClassAlreadyExistsException e) {
-                logger.warn("Class '{}' already exists for UDT, skipping ", cl);
+                throw new RuntimeException("Failed to generate UDT mapper interface.", e);
             }
+        }
+        if (beans != null) {
+            for (String cl : beans.keySet()) {
+                try {
+                    JDefinedClass clazz = JCQLUtils.getBeanClass(cfg.jpackage, camelize(cl), model);
 
+                    // row mapper
+                    rowMapperCode(clazz, rowMapper, beans.get(cl));
+
+                    // pojo to UDT mapper
+                    toUDTMapperCode(clazz, toUDTMapper, beans.get(cl), cl);
+
+                    // fields/getters/setters/annotations
+                    clazz.annotate(UDT.class).param("keyspace", cfg.keysapce).param("name", cl);
+                    for (Pair<String, DataType> field : beans.get(cl)) {
+                        javaBeanFieldWithGetterSetter(clazz, field.getValue1(), field.getValue0(),
+                                -1, com.datastax.driver.mapping.annotations.Field.class);
+
+                    }
+                } catch (JClassAlreadyExistsException e) {
+                    logger.warn("Class '{}' already exists for UDT, skipping ", cl);
+                }
+
+            }
         }
 
         for (String table : tables.keySet()) {
@@ -350,6 +372,33 @@ public class JCQLMain {
         }
     }
 
+    private void toUDTMapperCode(
+            JDefinedClass clazz, JClass udtMapper,
+            Collection<Pair<String, DataType>> fields,
+            String name) throws JClassAlreadyExistsException {
+        JClass udtMapperNarrowed = udtMapper.narrow(clazz);
+        JDefinedClass mapperImpl = clazz._class(
+                JMod.FINAL | JMod.STATIC | JMod.PRIVATE, clazz.name() + "ToUDTMapper")
+                ._implements(udtMapperNarrowed);
+        clazz.field(JMod.PRIVATE | JMod.STATIC | JMod.FINAL, mapperImpl, "udt_mapper", JExpr._new(mapperImpl));
+
+        JMethod toUDT = mapperImpl.method(PUBLIC, model.ref(UDTValue.class), "toUDT");
+        JVar param0 = toUDT.param(clazz, "data");
+        JVar param1 = toUDT.param(Session.class, "session");
+        JBlock body = toUDT.body();
+        JVar userType = body.decl(model.ref(UserType.class), "userType",
+                param1.invoke("getCluster")
+                        .invoke("getMetadata")
+                        .invoke("getKeyspace").arg(lit(cfg.keysapce))
+                        .invoke("getUserType").arg(lit(name))
+        );
+        JVar udt = body.decl(model.ref(UDTValue.class), "udtValue", userType.invoke("newValue"));
+
+        // TODO populate values
+        body._return(udt);
+
+    }
+
     /**
      * Generates private field, getter and setter, some cassandra annotations
      *
@@ -377,8 +426,8 @@ public class JCQLMain {
         } else if (pko > 0) {
             f.annotate(com.datastax.driver.mapping.annotations.PartitionKey.class).param("value", pko);
         }
-        clazz.method(JMod.PUBLIC, ref, "get" + camelize(name)).body()._return(JExpr._this().ref(f));
-        JMethod m = clazz.method(JMod.PUBLIC, Void.TYPE, "set" + camelize(name));
+        clazz.method(PUBLIC, ref, "get" + camelize(name)).body()._return(JExpr._this().ref(f));
+        JMethod m = clazz.method(PUBLIC, Void.TYPE, "set" + camelize(name));
         JVar p = m.param(ref, camelize(name, true));
         m.body().assign(JExpr._this().ref(f), p);
     }
@@ -398,7 +447,7 @@ public class JCQLMain {
                 ._implements(rowMapperNarrowed);
         clazz.field(JMod.PRIVATE | JMod.STATIC | JMod.FINAL, mapperImpl, "mapper", JExpr._new(mapperImpl));
 
-        JMethod map = mapperImpl.method(JMod.PUBLIC, clazz, "map");
+        JMethod map = mapperImpl.method(PUBLIC, clazz, "map");
         JVar param = map.param(com.datastax.driver.core.GettableData.class, "data");
         JBlock body = map.body();
         body._if(param.eq(JExpr._null()))._then()._return(JExpr._null());
@@ -408,7 +457,7 @@ public class JCQLMain {
             DataType type = field.getValue1();
             if (type.isCollection()) {
                 JBlock jb = body._if(JOp.not(param.invoke("isNull")
-                        .arg(JExpr.lit(name))))._then();
+                        .arg(lit(name))))._then();
                 List<DataType> typeArgs = type.getTypeArguments();
                 JExpression setterExpression;
 
@@ -489,7 +538,7 @@ public class JCQLMain {
                 } else if (type instanceof TupleType) {
                     TupleType tt = (TupleType) type;
                     JBlock cond = body._if(JOp.not(param.invoke("isNull")
-                            .arg(JExpr.lit(name))))._then();
+                            .arg(lit(name))))._then();
                     mapTuple(tt, cond, name, param, bean, type);
 
                 }
@@ -499,7 +548,7 @@ public class JCQLMain {
             }
         }
         body._return(JExpr.direct("entity"));
-        clazz.method(JMod.PUBLIC | JMod.STATIC, rowMapperNarrowed, "mapper").body()._return(JExpr.direct("mapper"));
+        clazz.method(PUBLIC | JMod.STATIC, rowMapperNarrowed, "mapper").body()._return(JExpr.direct("mapper"));
     }
 
     /**
@@ -537,7 +586,7 @@ public class JCQLMain {
                 // TODO need to support nested collections within tuples. Will do later. Passing Null for now.
                 tc = tc.arg(JExpr.cast(getType(cdt), JExpr._null()));
             } else {
-                tc = tc.arg(t.invoke(getDataMethod(dt.get(i).getName())).arg(JExpr.lit(i)));
+                tc = tc.arg(t.invoke(getDataMethod(dt.get(i).getName())).arg(lit(i)));
             }
         }
         ifbody.add(bean.invoke("set" + camelize(name)).arg(tc));
@@ -547,7 +596,7 @@ public class JCQLMain {
         return model.ref(getFullCallName(ut.getTypeName())).staticInvoke("mapper").invoke("map")
                 .arg(param.invoke(getDataMethod(type.getName()))
                         // somewhat very fragile and extremely straightforward but will stick with it form now
-                        .arg(isInteger(name) ? JExpr.lit(Integer.valueOf(name)) : JExpr.lit(name)));
+                        .arg(isInteger(name) ? lit(Integer.valueOf(name)) : lit(name)));
     }
 
     private JClass getType(DataType t) {
@@ -612,7 +661,7 @@ public class JCQLMain {
             while (jDefinedClassIterator.hasNext()) {
                 JDefinedClass jdc = jDefinedClassIterator.next();
                 if (jdc.isClass() && !jdc.isInterface()) {
-                    JMethod jMethod = jdc.method(JMod.PUBLIC, model.ref(String.class), "toString");
+                    JMethod jMethod = jdc.method(PUBLIC, model.ref(String.class), "toString");
                     JBlock body = jMethod.body();
                     JVar sb = body.decl(
                             JMod.FINAL, model.ref(StringBuilder.class),
@@ -621,7 +670,7 @@ public class JCQLMain {
                     body.add(sb.invoke("append").arg("{").invoke("append").arg(jdc.name()).invoke("append").arg(":{"));
                     int size = jdc.fields().size();
                     for (Map.Entry<String, JFieldVar> f : jdc.fields().entrySet()) {
-                        if (!f.getValue().type().fullName().contains("RowMapper")) {
+                        if (!f.getValue().type().fullName().contains("Mapper")) {
                             body.add(sb.invoke("append").arg(f.getKey())
                                     .invoke("append").arg("=")
                                     .invoke("append").arg(f.getValue()));

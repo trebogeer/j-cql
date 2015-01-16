@@ -346,21 +346,28 @@
                 <configuration>
                     <mainClass>com.trebogeer.jcql.JCQLMain</mainClass>
                     <arguments>
+                        <!--target generated source directory-->
                         <argument>-gsd</argument>
                         <argument>${project.build.directory}/autogen/</argument>
+                        <!--cassandra host to connect to -->
                         <argument>-h</argument>
                         <argument>localhost</argument>
+                        <!--cassandra port to connect to-->
                         <argument>-P</argument>
                         <agrument>${cs.ntp}</agrument>
+                        <!--cassandra keyspace -->
                         <argument>-k</argument>
                         <argument>${cs.test.ks}</argument>
+                        <!---debug?-->
                         <argument>-d</argument>
                         <argument>n</argument>
+                        <!--print info during code generation-->
                         <argument>-i</argument>
                         <argument>n</argument>
+                        <!-- generate toString method -->
                         <argument>-ts</argument>
                         <argument>y</argument>
-
+                        <!--cql statements to generate data access layer of -->
                         <!--<argument>-cql</argument>-->
                         <!--<argument>${project.basedir}/src/test/resources/cql.yml</argument>-->
                     </arguments>
