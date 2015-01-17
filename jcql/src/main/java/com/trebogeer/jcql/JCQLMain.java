@@ -18,6 +18,7 @@
 package com.trebogeer.jcql;
 
 
+import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.ColumnDefinitions;
 import com.datastax.driver.core.ColumnMetadata;
@@ -299,12 +300,25 @@ public class JCQLMain {
             ArrayListMultimap<String, String> partitionKeys) {
         JDefinedClass rowMapper;
         JDefinedClass toUDTMapper = null;
+        JDefinedClass binder = null;
         try {
             rowMapper = model._class(PUBLIC, cfg.jpackage + ".RowMapper", INTERFACE);
             JTypeVar jtv = rowMapper.generify("T");
             rowMapper.method(NONE, jtv, "map").param(com.datastax.driver.core.GettableData.class, "data");
         } catch (Exception e) {
             throw new RuntimeException("Failed to generate mapper interface.", e);
+        }
+
+        if (tables != null && !tables.isEmpty()) {
+            try {
+                binder = model._class(PUBLIC, cfg.jpackage + ".TableBindMapper", INTERFACE);
+                JTypeVar jtv = binder.generify("T");
+                JMethod jm = binder.method(NONE, model.VOID, "bind");
+                jm.param(jtv, "data");
+                jm.param(model.ref(BoundStatement.class), "st");
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to generate table bind interface.", e);
+            }
         }
 
         if (beans != null && beans.size() > 0) {
@@ -342,38 +356,60 @@ public class JCQLMain {
 
             }
         }
+        if (tables != null && !tables.isEmpty()) {
+            for (String table : tables.keySet()) {
+                try {
+                    JDefinedClass clazz = JCQLUtils.getBeanClass(cfg.jpackage, camelize(table), model);
 
-        for (String table : tables.keySet()) {
-            try {
-                JDefinedClass clazz = JCQLUtils.getBeanClass(cfg.jpackage, camelize(table), model);
-                // row mapper
-                rowMapperCode(clazz, rowMapper, Collections2.transform(tables.get(table), new Function<Pair<String, ColumnMetadata>, Pair<String, DataType>>() {
-                    @Override
-                    public Pair<String, DataType> apply(Pair<String, ColumnMetadata> input) {
-                        return Pair.with(input.getValue0(), input.getValue1().getType());
+
+                    Collection<Pair<String, DataType>> dataTypes = Collections2.transform(tables.get(table), new Function<Pair<String, ColumnMetadata>, Pair<String, DataType>>() {
+                        @Override
+                        public Pair<String, DataType> apply(Pair<String, ColumnMetadata> input) {
+                            return Pair.with(input.getValue0(), input.getValue1().getType());
+                        }
+                    });
+
+                    // row mapper
+                    rowMapperCode(clazz, rowMapper, dataTypes);
+
+                    // bind to statement code
+
+                    binderToStatemet(clazz, binder, dataTypes);
+
+                    // fields/getters/setters/annotations
+                    clazz.annotate(Table.class).param("keyspace", cfg.keysapce).param("name", table);
+                    List<String> pkList = partitionKeys.get(table);
+                    Set<String> pks = new HashSet<>(pkList);
+
+                    for (Pair<String, ColumnMetadata> field : tables.get(table)) {
+                        String fieldName = field.getValue0();
+                        int order = 0;
+                        if (pks.contains(fieldName) && pks.size() > 1) {
+                            order = pkList.indexOf(field.getValue0());
+                        }
+                        javaBeanFieldWithGetterSetter(clazz, field.getValue1().getType(), fieldName,
+                                order, Column.class);
+
+
                     }
-                }));
-
-                // fields/getters/setters/annotations
-                clazz.annotate(Table.class).param("keyspace", cfg.keysapce).param("name", table);
-                List<String> pkList = partitionKeys.get(table);
-                Set<String> pks = new HashSet<>(pkList);
-
-                for (Pair<String, ColumnMetadata> field : tables.get(table)) {
-                    String fieldName = field.getValue0();
-                    int order = 0;
-                    if (pks.contains(fieldName) && pks.size() > 1) {
-                        order = pkList.indexOf(field.getValue0());
-                    }
-                    javaBeanFieldWithGetterSetter(clazz, field.getValue1().getType(), fieldName,
-                            order, Column.class);
-
-
+                } catch (JClassAlreadyExistsException ex) {
+                    logger.warn("Class '{}' already exists for table, skipping ", table);
                 }
-            } catch (JClassAlreadyExistsException ex) {
-                logger.warn("Class '{}' already exists for table, skipping ", table);
             }
         }
+    }
+
+
+    /**
+     * Binds POJO to BoundStatement basing on PreparedStatement metadata by
+     * introspecting ColumnDefinitions and invoking BoundStatement#bind(...)
+     *
+     * @param clazz     pojo class
+     * @param binder    binder interface
+     * @param dataTypes collection of names and DataTypes of pojo fields
+     */
+    private void binderToStatemet(JDefinedClass clazz, JDefinedClass binder, Collection<Pair<String, DataType>> dataTypes) {
+        // TODO implement
     }
 
     /**
