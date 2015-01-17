@@ -12,6 +12,13 @@ CREATE TYPE jcql.address (
    city text,
    zipCode int,
    tupletest frozen<tuple<phone, text>>,
+   map1test map<frozen <phone>, text>,
+   map2test map<int, text>,
+   map3test map<int, frozen <phone>>,
+   map4test map<frozen <phone>, frozen <phone>>,
+   list1test list<int>,
+   set1test set<text>,
+   set2test set<frozen <phone>>,
    primary_phone frozen<phone>,
    phones list<frozen <phone>>
 );

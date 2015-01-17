@@ -415,24 +415,26 @@ public class JCQLMain {
         for (Pair<String, DataType> field : fields) {
             DataType dt = field.getValue1();
             String fname = field.getValue0();
+            String fnamec = camelize(fname);
+            String fnamecl = camelize(fname, true);
             JExpression arg2 = JExpr._null();
             if (dt.isFrozen()) {
 
                 if (dt instanceof UserType) {
                     arg2 = model.ref(getFullClassName(cfg.jpackage, ((UserType) dt).getTypeName()))
                             .staticInvoke("udtMapper")
-                            .invoke("toUDT").arg(dataUdt.invoke("get" + camelize(fname))).arg(session);
+                            .invoke("toUDT").arg(dataUdt.invoke("get" + fnamec)).arg(session);
                 } else if (dt instanceof TupleType) {
                     TupleType tt = (TupleType) dt;
                     List<DataType> componentTypes = tt.getComponentTypes();
                     Class<?> tupleClass = getTupleClass(componentTypes.size());
                     JClass tuple = model.ref(tupleClass);
-                    // TODO need to support tuples.
+
                     JInvocation of = model.ref(TupleType.class).staticInvoke("of");
                     for (DataType adt : componentTypes) {
                         tuple = tuple.narrow(getType(adt, model, cfg));
                     }
-                    JVar tupleRef = body.decl(tuple, camelize(fname, true) + "Tuple", dataUdt.invoke("get" + camelize(fname)));
+                    JVar tupleRef = body.decl(tuple, fnamecl + "Tuple", dataUdt.invoke("get" + fnamec));
 
                     int i = 0;
                     ArrayList<JExpression> getvalues = new ArrayList<>(componentTypes.size());
@@ -455,7 +457,7 @@ public class JCQLMain {
                                 jexpr = userTypeE;
                                 getvalues.set(i, udtValue);
                             } else if (adt instanceof TupleType) {
-
+                                // TODO yep, all the hell above once again
                             }
                         } else if (adt.isCollection()) {
 
@@ -479,8 +481,74 @@ public class JCQLMain {
                         DataType argDt = argTypes.get(0);
                         if (argDt.isCollection()) {
                             // TODO cassandra does not support embedded collections yet but might support in future
+                            throw new UnsupportedOperationException("Collections of collections are not" +
+                                    " supported within UDTs and probably by cassandra 2.1.");
                         } else if (argDt.isFrozen()) {
+                            if (argDt instanceof UserType) {
+                                UserType ut = (UserType) argDt;
+                                String utname = ut.getTypeName();
+                                String utnamec = camelize(utname);
+                                JClass sourceCollectionGeneric = model.ref(getFullClassName(cfg.jpackage, utnamec));
+                                JClass sourceCollectionClass = model.ref(dt.asJavaClass())
+                                        .narrow(sourceCollectionGeneric);
 
+                                JVar source = body.decl(sourceCollectionClass, fnamecl + "Source",
+                                        dataUdt.invoke("get" + camelize(fname)));
+                                JVar target = body.decl(model.ref(dt.asJavaClass()).narrow(UDTValue.class),
+                                        fnamecl + "Target",
+                                        JExpr._new(dt.asJavaClass().isAssignableFrom(Set.class)
+                                                ? model.ref(HashSet.class).narrow(UDTValue.class)
+                                                : model.ref(LinkedList.class).narrow(UDTValue.class)));
+                                JForEach forEach = body.forEach(sourceCollectionGeneric, "entry", source);
+                                JVar entry = forEach.var();
+                                JBlock forEachBody = forEach.body();
+
+                                JInvocation convertToUDT = sourceCollectionGeneric
+                                        .staticInvoke("udtMapper").invoke("toUDT").arg(entry).arg(session);
+                                forEachBody.add(target.invoke("add").arg(convertToUDT));
+                                arg2 = target;
+                            } else if (argDt instanceof TupleType) {
+                                // TODO support tuples
+                                throw new UnsupportedOperationException("Collections of tuples within " +
+                                        "UDT are not yet supported.");
+                            }
+                        } else {
+                            arg2 = dataUdt.invoke("get" + camelize(fname));
+                        }
+                    } else if (argTypes.size() == 2) {
+                        DataType argDt0 = argTypes.get(0);
+                        DataType argDt1 = argTypes.get(1);
+                        JClass argc0 = getType(argDt0, model, cfg);
+                        JClass argc1 = getType(argDt1, model, cfg);
+                        if (argDt0.isCollection() || argDt1.isCollection()) {
+                            // TODO cassandra does not support embedded collections yet but might support in future
+                            throw new UnsupportedOperationException("Collections of collections are not" +
+                                    " supported within UDTs and probably by cassandra 2.1.");
+                        } else if (argDt0.isFrozen() || argDt1.isFrozen()) {
+                            if (argDt0 instanceof TupleType || argDt1 instanceof TupleType) {
+                                throw new UnsupportedOperationException("Collections of tuples are not yet" +
+                                        " supported within UDTs.");
+                            }
+
+                            JVar source = body.decl(model.ref(Map.class).narrow(argc0, argc1),
+                                    fnamecl + "Source", dataUdt.invoke("get" + camelize(fname)));
+                            JVar target = body.decl(model.ref(Map.class).narrow(argDt0.asJavaClass(), argDt1.asJavaClass()),
+                                    fnamecl + "Target",
+                                    JExpr._new(model.ref(HashMap.class).narrow(argDt0.asJavaClass(), argDt1.asJavaClass())));
+                            JClass entryClass = model.ref(Map.Entry.class).narrow(argc0, argc1);
+                            JForEach forEach = body.forEach(entryClass, "entry", source.invoke("entrySet"));
+                            JVar entry = forEach.var();
+                            JExpression k = entry.invoke("getKey");
+                            JExpression v = entry.invoke("getValue");
+                            JBlock forEachBody = forEach.body();
+                            JExpression key = argDt0.isFrozen()
+                                    ? argc0.staticInvoke("udtMapper").invoke("toUDT").arg(k).arg(session)
+                                    : k;
+                            JExpression value = argDt1.isFrozen()
+                                    ? argc1.staticInvoke("udtMapper").invoke("toUDT").arg(v).arg(session)
+                                    : v;
+                            forEachBody.add(target.invoke("put").arg(key).arg(value));
+                            arg2 = target;
                         } else {
                             arg2 = dataUdt.invoke("get" + camelize(fname));
                         }
@@ -585,6 +653,8 @@ public class JCQLMain {
                             setterExpression = collection;
                         } else if (arg instanceof TupleType) {
                             // TODO handle tuples
+                            throw new UnsupportedOperationException("Collections of tuples" +
+                                    " are not yet supported when converting from Row to POJO.");
                         }
                     }
                 } else if (typeArgs.size() == 2) {
