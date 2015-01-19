@@ -57,6 +57,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -78,6 +79,7 @@ import static com.trebogeer.jcql.JCQLUtils.getTupleClass;
 import static com.trebogeer.jcql.JCQLUtils.getType;
 import static com.trebogeer.jcql.JCQLUtils.isInteger;
 import static com.trebogeer.jcql.JCQLUtils.setDataMethod;
+import static com.trebogeer.jcql.JCQLUtils.typeToDTStaticMthod;
 
 /**
  * @author Dmitry Vasilyev
@@ -89,6 +91,20 @@ public class JCQLMain {
 
     private final Options cfg;
     private final JCodeModel model;
+
+    private final Iterator<Integer> seq = new Iterator<Integer>() {
+        int s = 0;
+
+        @Override
+        public boolean hasNext() {
+            return s < Integer.MAX_VALUE;
+        }
+
+        @Override
+        public Integer next() {
+            return ++s;
+        }
+    };
 
     private JCQLMain(Options cfg) {
         this.cfg = cfg;
@@ -359,7 +375,7 @@ public class JCQLMain {
 
                     // bind to statement code
 
-                    binderToStatemet(clazz, binder, dataTypes);
+                 //   binderToStatemet(clazz, binder, dataTypes);
 
                     // fields/getters/setters/annotations
                     clazz.annotate(Table.class).param("keyspace", cfg.keysapce).param("name", table);
@@ -425,34 +441,34 @@ public class JCQLMain {
         JBlock forEachBody0 = forEach0.body();
         forEachBody0.add(defsMap.invoke("put").arg(entry0.invoke("getName")).arg(cnt));
         forEachBody0.assignPlus(cnt, JExpr.lit(1));
-        
+
         JVar bindArgs = body.decl(model.ref(Object[].class), "bindArgs",
                 JExpr.newArray(model.ref(Object.class), defsMap.invoke("size")));
 
         for (Pair<String, DataType> field : dataTypes) {
             DataType dt = field.getValue1();
             String fname = field.getValue0();
-            String fnamec = camelize(fname);
-            String fnamecl = camelize(fname, true);
-            JExpression arg2 = JExpr._null();
             JBlock ifBody = body._if(defsMap.invoke("containsKey").arg(JExpr.lit(fname)))._then();
-            
+            JVar pos = ifBody.decl(model.INT, "pos", defsMap.invoke("get").arg(JExpr.lit(fname)));
+
+            JExpression rvar = processMapField(dt, dataBind, fname, session, ifBody);
+
+            ifBody.assign(JExpr.component(bindArgs, pos), rvar);
 
         }
         body.add(st.invoke("bind").arg(bindArgs));
     }
 
 
-
-        /**
-         * Maps pojo to UDT for subsequent update/insert.
-         *
-         * @param clazz     pojo class
-         * @param udtMapper to udt mapper interface
-         * @param fields    collection of pojo fields
-         * @param name      name of user type in cassandra ddl
-         * @throws JClassAlreadyExistsException thrown if mapper already exists
-         */
+    /**
+     * Maps pojo to UDT for subsequent update/insert.
+     *
+     * @param clazz     pojo class
+     * @param udtMapper to udt mapper interface
+     * @param fields    collection of pojo fields
+     * @param name      name of user type in cassandra ddl
+     * @throws JClassAlreadyExistsException thrown if mapper already exists
+     */
 
     private void toUDTMapperCode(
             JDefinedClass clazz, JClass udtMapper,
@@ -484,154 +500,216 @@ public class JCQLMain {
         for (Pair<String, DataType> field : fields) {
             DataType dt = field.getValue1();
             String fname = field.getValue0();
-            String fnamec = camelize(fname);
-            String fnamecl = camelize(fname, true);
-            JExpression arg2 = JExpr._null();
-            if (dt.isFrozen()) {
-
-                if (dt instanceof UserType) {
-                    arg2 = model.ref(getFullClassName(cfg.jpackage, ((UserType) dt).getTypeName()))
-                            .staticInvoke("udtMapper")
-                            .invoke("toUDT").arg(dataUdt.invoke("get" + fnamec)).arg(session);
-                } else if (dt instanceof TupleType) {
-                    TupleType tt = (TupleType) dt;
-                    List<DataType> componentTypes = tt.getComponentTypes();
-                    Class<?> tupleClass = getTupleClass(componentTypes.size());
-                    JClass tuple = model.ref(tupleClass);
-
-                    JInvocation of = model.ref(TupleType.class).staticInvoke("of");
-                    for (DataType adt : componentTypes) {
-                        tuple = tuple.narrow(getType(adt, model, cfg));
-                    }
-                    JVar tupleRef = body.decl(tuple, fnamecl + "Tuple", dataUdt.invoke("get" + fnamec));
-
-                    int i = 0;
-                    ArrayList<JExpression> getvalues = new ArrayList<>(componentTypes.size());
-                    for (DataType adt : componentTypes) {
-                        JExpression jexpr = JExpr._null();
-                        getvalues.add(i, tupleRef.invoke("getValue" + i));
-                        if (adt.isFrozen()) {
-                            if (adt instanceof UserType) {
-                                UserType ut = (UserType) adt;
-                                String tname = ut.getTypeName();
-
-                                JVar udtValue = body.decl(model.ref(UDTValue.class),
-                                        camelize(tname, true),
-                                        model.ref(getFullClassName(cfg.jpackage, tname))
-                                                .staticInvoke("udtMapper").invoke("toUDT")
-                                                .arg(tupleRef.invoke("getValue" + i)).arg(session));
-
-                                JVar userTypeE = body.decl(model.ref(UserType.class), camelize(tname, true) + "UserType",
-                                        udtValue.invoke("getType"));
-                                jexpr = userTypeE;
-                                getvalues.set(i, udtValue);
-                            } else if (adt instanceof TupleType) {
-                                // TODO yep, all the hell above once again
-                            }
-                        } else if (adt.isCollection()) {
-
-                        } else {
-                            jexpr = model.ref(DataType.class).staticInvoke(adt.getName().name().toLowerCase());
-                        }
-                        i++;
-                        of.arg(jexpr);
-                    }
-                    JVar ttE = body.decl(model.ref(TupleType.class), camelize(fname, true) + "TupleType", of);
-                    JVar tvE = body.decl(model.ref(TupleValue.class), camelize(fname, true) + "TupleValue", ttE.invoke("newValue"));
-                    for (int a = 0; a < getvalues.size(); a++) {
-                        body.add(tvE.invoke(setDataMethod(componentTypes.get(a).getName())).arg(JExpr.lit(a)).arg(getvalues.get(a)));
-                    }
-                    arg2 = tvE;
-                }
-            } else if (dt.isCollection()) {
-                List<DataType> argTypes = dt.getTypeArguments();
-                if (argTypes != null) {
-                    if (argTypes.size() == 1) {
-                        DataType argDt = argTypes.get(0);
-                        if (argDt.isCollection()) {
-                            // TODO cassandra does not support embedded collections yet but might support in future
-                            throw new UnsupportedOperationException("Collections of collections are not" +
-                                    " supported within UDTs and probably by cassandra 2.1.");
-                        } else if (argDt.isFrozen()) {
-                            if (argDt instanceof UserType) {
-                                UserType ut = (UserType) argDt;
-                                String utname = ut.getTypeName();
-                                String utnamec = camelize(utname);
-                                JClass sourceCollectionGeneric = model.ref(getFullClassName(cfg.jpackage, utnamec));
-                                JClass sourceCollectionClass = model.ref(dt.asJavaClass())
-                                        .narrow(sourceCollectionGeneric);
-
-                                JVar source = body.decl(sourceCollectionClass, fnamecl + "Source",
-                                        dataUdt.invoke("get" + camelize(fname)));
-                                JVar target = body.decl(model.ref(dt.asJavaClass()).narrow(UDTValue.class),
-                                        fnamecl + "Target",
-                                        JExpr._new(dt.asJavaClass().isAssignableFrom(Set.class)
-                                                ? model.ref(HashSet.class).narrow(UDTValue.class)
-                                                : model.ref(LinkedList.class).narrow(UDTValue.class)));
-                                JForEach forEach = body.forEach(sourceCollectionGeneric, "entry", source);
-                                JVar entry = forEach.var();
-                                JBlock forEachBody = forEach.body();
-
-                                JInvocation convertToUDT = sourceCollectionGeneric
-                                        .staticInvoke("udtMapper").invoke("toUDT").arg(entry).arg(session);
-                                forEachBody.add(target.invoke("add").arg(convertToUDT));
-                                arg2 = target;
-                            } else if (argDt instanceof TupleType) {
-                                // TODO support tuples
-                                throw new UnsupportedOperationException("Collections of tuples within " +
-                                        "UDT are not yet supported.");
-                            }
-                        } else {
-                            arg2 = dataUdt.invoke("get" + camelize(fname));
-                        }
-                    } else if (argTypes.size() == 2) {
-                        DataType argDt0 = argTypes.get(0);
-                        DataType argDt1 = argTypes.get(1);
-                        JClass argc0 = getType(argDt0, model, cfg);
-                        JClass argc1 = getType(argDt1, model, cfg);
-                        if (argDt0.isCollection() || argDt1.isCollection()) {
-                            // TODO cassandra does not support embedded collections yet but might support in future
-                            throw new UnsupportedOperationException("Collections of collections are not" +
-                                    " supported within UDTs and probably by cassandra 2.1.");
-                        } else if (argDt0.isFrozen() || argDt1.isFrozen()) {
-                            if (argDt0 instanceof TupleType || argDt1 instanceof TupleType) {
-                                throw new UnsupportedOperationException("Collections of tuples are not yet" +
-                                        " supported within UDTs.");
-                            }
-
-                            JVar source = body.decl(model.ref(Map.class).narrow(argc0, argc1),
-                                    fnamecl + "Source", dataUdt.invoke("get" + camelize(fname)));
-                            JVar target = body.decl(model.ref(Map.class).narrow(argDt0.asJavaClass(), argDt1.asJavaClass()),
-                                    fnamecl + "Target",
-                                    JExpr._new(model.ref(HashMap.class).narrow(argDt0.asJavaClass(), argDt1.asJavaClass())));
-                            JClass entryClass = model.ref(Map.Entry.class).narrow(argc0, argc1);
-                            JForEach forEach = body.forEach(entryClass, "entry", source.invoke("entrySet"));
-                            JVar entry = forEach.var();
-                            JExpression k = entry.invoke("getKey");
-                            JExpression v = entry.invoke("getValue");
-                            JBlock forEachBody = forEach.body();
-                            JExpression key = argDt0.isFrozen()
-                                    ? argc0.staticInvoke("udtMapper").invoke("toUDT").arg(k).arg(session)
-                                    : k;
-                            JExpression value = argDt1.isFrozen()
-                                    ? argc1.staticInvoke("udtMapper").invoke("toUDT").arg(v).arg(session)
-                                    : v;
-                            forEachBody.add(target.invoke("put").arg(key).arg(value));
-                            arg2 = target;
-                        } else {
-                            arg2 = dataUdt.invoke("get" + camelize(fname));
-                        }
-                    }
-                }
-            } else {
-                arg2 = dataUdt.invoke("get" + camelize(fname));
-            }
+            JExpression arg2 = processMapField(dt, dataUdt, fname, session, body);
             body.add(udt.invoke(setDataMethod(dt.getName())).arg(lit(fname)).arg(arg2));
 
         }
 
         body._return(udt);
 
+    }
+
+    private JExpression processMapField(DataType dt, JVar data, String name, JVar session, JBlock body) {
+
+        String fname = name;
+        String fnamec = camelize(fname);
+        String fnamecl = camelize(fname, true);
+
+        if (dt.isFrozen()) {
+
+            if (dt instanceof UserType) {
+                return model.ref(getFullClassName(cfg.jpackage, ((UserType) dt).getTypeName()))
+                        .staticInvoke("udtMapper")
+                        .invoke("toUDT").arg(data.invoke("get" + fnamec)).arg(session);
+            } else if (dt instanceof TupleType) {
+//                TupleType tt = (TupleType) dt;
+//                List<DataType> componentTypes = tt.getComponentTypes();
+//                Class<?> tupleClass = getTupleClass(componentTypes.size());
+//                JClass tuple = model.ref(tupleClass);
+//
+//                JInvocation of = model.ref(TupleType.class).staticInvoke("of");
+//                for (DataType adt : componentTypes) {
+//                    tuple = tuple.narrow(getType(adt, model, cfg));
+//                }
+//                JVar tupleRef = body.decl(tuple, fnamecl + "Tuple", data.invoke("get" + fnamec));
+//
+//                int i = 0;
+//                ArrayList<JExpression> getvalues = new ArrayList<>(componentTypes.size());
+//                for (DataType adt : componentTypes) {
+//                    JExpression jexpr = JExpr._null();
+//                    getvalues.add(i, tupleRef.invoke("getValue" + i));
+//                    if (adt.isFrozen()) {
+//                        if (adt instanceof UserType) {
+//                            UserType ut = (UserType) adt;
+//                            String tname = ut.getTypeName();
+//
+//                            JVar udtValue = body.decl(model.ref(UDTValue.class),
+//                                    camelize(tname, true),
+//                                    model.ref(getFullClassName(cfg.jpackage, tname))
+//                                            .staticInvoke("udtMapper").invoke("toUDT")
+//                                            .arg(tupleRef.invoke("getValue" + i)).arg(session));
+//
+//                            JVar userTypeE = body.decl(model.ref(UserType.class), camelize(tname, true) + "UserType",
+//                                    udtValue.invoke("getType"));
+//                            jexpr = userTypeE;
+//                            getvalues.set(i, udtValue);
+//                        } else if (adt instanceof TupleType) {
+//                            // TODO yep, all the hell above once again
+//                        }
+//                    } else if (adt.isCollection()) {
+//
+//                    } else {
+//                        jexpr = model.ref(DataType.class).staticInvoke(typeToDTStaticMthod(adt.getName()));
+//                    }
+//                    i++;
+//                    of.arg(jexpr);
+//                }
+//                JVar ttE = body.decl(model.ref(TupleType.class), camelize(fname, true) + "TupleType", of);
+//                JVar tvE = body.decl(model.ref(TupleValue.class), camelize(fname, true) + "TupleValue", ttE.invoke("newValue"));
+//                for (int a = 0; a < getvalues.size(); a++) {
+//                    body.add(tvE.invoke(setDataMethod(componentTypes.get(a).getName())).arg(JExpr.lit(a)).arg(getvalues.get(a)));
+//                }
+//                return tvE;
+                return processTuple(dt, data, fnamec ,body, session);
+            }
+
+        } else if (dt.isCollection()) {
+            List<DataType> argTypes = dt.getTypeArguments();
+            if (argTypes != null) {
+                if (argTypes.size() == 1) {
+                    DataType argDt = argTypes.get(0);
+                    if (argDt.isCollection()) {
+                        // TODO cassandra does not support embedded collections yet but might support in future
+                        throw new UnsupportedOperationException("Collections of collections are not" +
+                                " supported within UDTs and probably by cassandra 2.1.");
+                    } else if (argDt.isFrozen()) {
+                        if (argDt instanceof UserType) {
+                            UserType ut = (UserType) argDt;
+                            String utname = ut.getTypeName();
+                            String utnamec = camelize(utname);
+                            JClass sourceCollectionGeneric = model.ref(getFullClassName(cfg.jpackage, utnamec));
+                            JClass sourceCollectionClass = model.ref(dt.asJavaClass())
+                                    .narrow(sourceCollectionGeneric);
+
+                            JVar source = body.decl(sourceCollectionClass, fnamecl + "Source",
+                                    data.invoke("get" + camelize(fname)));
+                            JVar target = body.decl(model.ref(dt.asJavaClass()).narrow(UDTValue.class),
+                                    fnamecl + "Target",
+                                    JExpr._new(dt.asJavaClass().isAssignableFrom(Set.class)
+                                            ? model.ref(HashSet.class).narrow(UDTValue.class)
+                                            : model.ref(LinkedList.class).narrow(UDTValue.class)));
+                            JForEach forEach = body.forEach(sourceCollectionGeneric, "entry", source);
+                            JVar entry = forEach.var();
+                            JBlock forEachBody = forEach.body();
+
+                            JInvocation convertToUDT = sourceCollectionGeneric
+                                    .staticInvoke("udtMapper").invoke("toUDT").arg(entry).arg(session);
+                            forEachBody.add(target.invoke("add").arg(convertToUDT));
+                            return target;
+                        } else if (argDt instanceof TupleType) {
+                            // TODO support tuples
+                            throw new UnsupportedOperationException("Collections of tuples within " +
+                                    "UDT are not yet supported.");
+                        }
+                    } else {
+                        return data.invoke("get" + camelize(fname));
+                    }
+                } else if (argTypes.size() == 2) {
+                    DataType argDt0 = argTypes.get(0);
+                    DataType argDt1 = argTypes.get(1);
+                    JClass argc0 = getType(argDt0, model, cfg);
+                    JClass argc1 = getType(argDt1, model, cfg);
+                    if (argDt0.isCollection() || argDt1.isCollection()) {
+                        // TODO cassandra does not support embedded collections yet but might support in future
+                        throw new UnsupportedOperationException("Collections of collections are not" +
+                                " supported within UDTs and probably by cassandra 2.1.");
+                    } else if (argDt0.isFrozen() || argDt1.isFrozen()) {
+                        if (argDt0 instanceof TupleType || argDt1 instanceof TupleType) {
+                            throw new UnsupportedOperationException("Collections of tuples are not yet" +
+                                    " supported within UDTs.");
+                        }
+
+                        JVar source = body.decl(model.ref(Map.class).narrow(argc0, argc1),
+                                fnamecl + "Source", data.invoke("get" + camelize(fname)));
+                        JVar target = body.decl(model.ref(Map.class).narrow(argDt0.asJavaClass(), argDt1.asJavaClass()),
+                                fnamecl + "Target",
+                                JExpr._new(model.ref(HashMap.class).narrow(argDt0.asJavaClass(), argDt1.asJavaClass())));
+                        JClass entryClass = model.ref(Map.Entry.class).narrow(argc0, argc1);
+                        JForEach forEach = body.forEach(entryClass, "entry", source.invoke("entrySet"));
+                        JVar entry = forEach.var();
+                        JExpression k = entry.invoke("getKey");
+                        JExpression v = entry.invoke("getValue");
+                        JBlock forEachBody = forEach.body();
+                        JExpression key = argDt0.isFrozen()
+                                ? argc0.staticInvoke("udtMapper").invoke("toUDT").arg(k).arg(session)
+                                : k;
+                        JExpression value = argDt1.isFrozen()
+                                ? argc1.staticInvoke("udtMapper").invoke("toUDT").arg(v).arg(session)
+                                : v;
+                        forEachBody.add(target.invoke("put").arg(key).arg(value));
+                        return target;
+                    } else {
+                        return data.invoke("get" + camelize(fname));
+                    }
+                }
+
+            }
+        }
+        return JExpr._null();
+    }
+
+    private JExpression processTuple(DataType dt, JVar data, String fnamec, JBlock body, JVar session) {
+        TupleType tt = (TupleType) dt;
+        List<DataType> componentTypes = tt.getComponentTypes();
+        Class<?> tupleClass = getTupleClass(componentTypes.size());
+        JClass tuple = model.ref(tupleClass);
+
+        JInvocation of = model.ref(TupleType.class).staticInvoke("of");
+        for (DataType adt : componentTypes) {
+            tuple = tuple.narrow(getType(adt, model, cfg));
+        }
+        JVar tupleRef = body.decl(tuple, camelize(fnamec, true) + "Tuple", data.invoke("get" + fnamec));
+
+        int i = 0;
+        ArrayList<JExpression> getvalues = new ArrayList<>(componentTypes.size());
+        for (DataType adt : componentTypes) {
+            JExpression jexpr = JExpr._null();
+            getvalues.add(i, tupleRef.invoke("getValue" + i));
+            if (adt.isFrozen()) {
+                if (adt instanceof UserType) {
+                    UserType ut = (UserType) adt;
+                    String tname = ut.getTypeName();
+
+                    JVar udtValue = body.decl(model.ref(UDTValue.class),
+                            camelize(tname, true),
+                            model.ref(getFullClassName(cfg.jpackage, tname))
+                                    .staticInvoke("udtMapper").invoke("toUDT")
+                                    .arg(tupleRef.invoke("getValue" + i)).arg(session));
+
+                    JVar userTypeE = body.decl(model.ref(UserType.class), camelize(tname, true) + "UserType",
+                            udtValue.invoke("getType"));
+                    jexpr = userTypeE;
+                    getvalues.set(i, udtValue);
+                } else if (adt instanceof TupleType) {
+                   // JExpression r = processTuple(adt, tupleRef, "Value" + i, body, session);
+                   // getvalues.set(i, r);
+                   // jexpr = JExpr.cast(model.ref(DataType.class), r);
+                    jexpr = JExpr._null();
+                }
+            } else if (adt.isCollection()) {
+                // TODO implement
+            } else {
+                jexpr = model.ref(DataType.class).staticInvoke(typeToDTStaticMthod(adt.getName()));
+            }
+            i++;
+            of.arg(jexpr);
+        }
+        JVar ttE = body.decl(model.ref(TupleType.class), "tupleType" + seq.next(), of);
+        JVar tvE = body.decl(model.ref(TupleValue.class), "tupleValue" + seq.next(), ttE.invoke("newValue"));
+        for (int a = 0; a < getvalues.size(); a++) {
+            body.add(tvE.invoke(setDataMethod(componentTypes.get(a).getName())).arg(JExpr.lit(a)).arg(getvalues.get(a)));
+        }
+        return tvE;
     }
 
     /**
@@ -675,7 +753,8 @@ public class JCQLMain {
      * @param fields    fields to map
      * @throws JClassAlreadyExistsException thrown if class already exists in code model
      */
-    private void rowMapperCode(JDefinedClass clazz, JClass rowMapper, Collection<Pair<String, DataType>> fields) throws JClassAlreadyExistsException {
+    private void rowMapperCode(JDefinedClass clazz, JClass
+            rowMapper, Collection<Pair<String, DataType>> fields) throws JClassAlreadyExistsException {
         JClass rowMapperNarrowed = rowMapper.narrow(clazz);
         JDefinedClass mapperImpl = clazz._class(
                 JMod.FINAL | JMod.STATIC | JMod.PRIVATE, clazz.name() + "RowMapper")

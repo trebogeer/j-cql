@@ -356,4 +356,55 @@ public class JCQLUtils {
     public static String getFullClassName(String jpackage, String name) {
         return jpackage + "." + camelize(name);
     }
+
+    public static String typeToDTStaticMthod(DataType.Name name) {
+        switch (name) {
+            case ASCII:
+                return "ascii";
+            case BIGINT:
+                return "bigint";
+            case BLOB:
+                return "blob";
+            case BOOLEAN:
+                return "cboolean";
+            case COUNTER:
+                return "counter";
+            case DECIMAL:
+                return "decimal";
+            case DOUBLE:
+                return "cdouble";
+            case FLOAT:
+                return "cfloat";
+            case INET:
+                return "inet";
+            case INT:
+                return "cint";
+            case TEXT:
+                return "text";
+            case TIMESTAMP:
+                return "timestamp";
+            case UUID:
+                return "uuid";
+            case VARCHAR:
+                return "varchar";
+            case VARINT:
+                return "varint";
+            case TIMEUUID:
+                return "timeuuid";
+            case LIST:
+                return "list";
+            case SET:
+                return "set";
+            case MAP:
+                return "map";
+            case CUSTOM:
+                return "custom";
+            /*case UDT:     should be processed separately
+             case TUPLE:    should be processed separately
+            */
+            default:
+                return null;
+        }
+
+    }
 }

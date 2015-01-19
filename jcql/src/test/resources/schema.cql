@@ -28,6 +28,7 @@ CREATE TABLE jcql.accounts (
    name text,
    addr frozen<address>,
    settest set<text>,
+   set2test set<frozen <address>>,
    maptest map<int, text>,
    map2test map<int, frozen <phone>>
 );
