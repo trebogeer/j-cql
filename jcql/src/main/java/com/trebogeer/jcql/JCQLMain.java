@@ -40,23 +40,7 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-import com.sun.codemodel.JBlock;
-import com.sun.codemodel.JClass;
-import com.sun.codemodel.JClassAlreadyExistsException;
-import com.sun.codemodel.JCodeModel;
-import com.sun.codemodel.JConditional;
-import com.sun.codemodel.JDefinedClass;
-import com.sun.codemodel.JExpr;
-import com.sun.codemodel.JExpression;
-import com.sun.codemodel.JFieldVar;
-import com.sun.codemodel.JForEach;
-import com.sun.codemodel.JInvocation;
-import com.sun.codemodel.JMethod;
-import com.sun.codemodel.JMod;
-import com.sun.codemodel.JOp;
-import com.sun.codemodel.JPackage;
-import com.sun.codemodel.JTypeVar;
-import com.sun.codemodel.JVar;
+import com.sun.codemodel.*;
 import com.sun.codemodel.writer.SingleStreamCodeWriter;
 import org.javatuples.Pair;
 import org.kohsuke.args4j.CmdLineException;
@@ -316,6 +300,7 @@ public class JCQLMain {
                 JMethod jm = binder.method(NONE, model.VOID, "bind");
                 jm.param(jtv, "data");
                 jm.param(model.ref(BoundStatement.class), "st");
+                jm.param(model.ref(Session.class), "session");
             } catch (Exception e) {
                 throw new RuntimeException("Failed to generate table bind interface.", e);
             }
@@ -408,19 +393,66 @@ public class JCQLMain {
      * @param binder    binder interface
      * @param dataTypes collection of names and DataTypes of pojo fields
      */
-    private void binderToStatemet(JDefinedClass clazz, JDefinedClass binder, Collection<Pair<String, DataType>> dataTypes) {
-        // TODO implement
+    private void binderToStatemet(
+            JDefinedClass clazz, JDefinedClass binder,
+            Collection<Pair<String, DataType>> dataTypes
+    ) throws JClassAlreadyExistsException {
+        JClass bindMapperNarrowed = binder.narrow(clazz);
+        JDefinedClass bindImpl = clazz._class(
+                JMod.FINAL
+                        | JMod.STATIC | JMod.PRIVATE, clazz.name() + "BindMapper")
+                ._implements(bindMapperNarrowed);
+        JVar bindSt = clazz.field(JMod.PRIVATE | JMod.STATIC | JMod.FINAL, bindImpl, "bind", JExpr._new(bindImpl));
+        clazz.method(PUBLIC | JMod.STATIC, bindImpl, "bind").body()._return(bindSt);
+
+        JMethod bind = bindImpl.method(PUBLIC, model.VOID, "bind");
+        JVar dataBind = bind.param(clazz, "data");
+        JVar st = bind.param(BoundStatement.class, "st");
+        JVar session = bind.param(Session.class, "session");
+        JBlock body = bind.body();
+
+        body._if(dataBind.eq(JExpr._null()))._then()._return();
+        body._if(st.eq(JExpr._null()))._then()._throw(JExpr._new(model.ref(IllegalArgumentException.class))
+                .arg("Cassandra BoundStatement can't be null."));
+        JVar defsMap = body.decl(model.ref(Map.class).narrow(String.class, Integer.class),
+                "defSet", JExpr._new(model.ref(HashMap.class).narrow(String.class, Integer.class)));
+        JVar columnDefinitions = body.decl(model.ref(ColumnDefinitions.class), "cds",
+                st.invoke("preparedStatement").invoke("getVariables"));
+        JVar cnt = body.decl(model.INT, "cnt", JExpr.lit(0));
+        JForEach forEach0 = body.forEach(model.ref(ColumnDefinitions.Definition.class),
+                "entry", columnDefinitions.invoke("asList"));
+        JVar entry0 = forEach0.var();
+        JBlock forEachBody0 = forEach0.body();
+        forEachBody0.add(defsMap.invoke("put").arg(entry0.invoke("getName")).arg(cnt));
+        forEachBody0.assignPlus(cnt, JExpr.lit(1));
+        
+        JVar bindArgs = body.decl(model.ref(Object[].class), "bindArgs",
+                JExpr.newArray(model.ref(Object.class), defsMap.invoke("size")));
+
+        for (Pair<String, DataType> field : dataTypes) {
+            DataType dt = field.getValue1();
+            String fname = field.getValue0();
+            String fnamec = camelize(fname);
+            String fnamecl = camelize(fname, true);
+            JExpression arg2 = JExpr._null();
+            JBlock ifBody = body._if(defsMap.invoke("containsKey").arg(JExpr.lit(fname)))._then();
+            
+
+        }
     }
 
-    /**
-     * Maps pojo to UDT for subsequent update/insert.
-     *
-     * @param clazz     pojo class
-     * @param udtMapper to udt mapper interface
-     * @param fields    collection of pojo fields
-     * @param name      name of user type in cassandra ddl
-     * @throws JClassAlreadyExistsException thrown if mapper already exists
-     */
+
+
+        /**
+         * Maps pojo to UDT for subsequent update/insert.
+         *
+         * @param clazz     pojo class
+         * @param udtMapper to udt mapper interface
+         * @param fields    collection of pojo fields
+         * @param name      name of user type in cassandra ddl
+         * @throws JClassAlreadyExistsException thrown if mapper already exists
+         */
+
     private void toUDTMapperCode(
             JDefinedClass clazz, JClass udtMapper,
             Collection<Pair<String, DataType>> fields,
