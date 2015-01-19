@@ -439,6 +439,7 @@ public class JCQLMain {
             
 
         }
+        body.add(st.invoke("bind").arg(bindArgs));
     }
 
 
