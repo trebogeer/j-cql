@@ -426,7 +426,7 @@ public class JCQLMain {
         JVar st = bind.param(BoundStatement.class, "st");
         JVar session = bind.param(Session.class, "session");
         JBlock body = bind.body();
-
+        // TODO throw exception may be instead returning
         body._if(dataBind.eq(JExpr._null()))._then()._return();
         body._if(st.eq(JExpr._null()))._then()._throw(JExpr._new(model.ref(IllegalArgumentException.class))
                 .arg("Cassandra BoundStatement can't be null."));
@@ -450,10 +450,17 @@ public class JCQLMain {
             String fname = field.getValue0();
             JBlock ifBody = body._if(defsMap.invoke("containsKey").arg(JExpr.lit(fname)))._then();
             JVar pos = ifBody.decl(model.INT, "pos", defsMap.invoke("get").arg(JExpr.lit(fname)));
+            JVar fv = ifBody.decl(getType(dt, model, cfg), camelize(fname, true) + "Val", dataBind.invoke("get" + camelize(fname)));
+            JConditional ifNull = ifBody._if(fv.ne(JExpr._null()));
+            JBlock ifNullBody = ifNull._then();
+            JExpression rvar = processMapField(dt, dataBind, fname, session, ifNullBody);
+            // TODO set individual fields instead directly to statement
+            //ifNullBody.assign(JExpr.component(bindArgs, pos), rvar);
+            ifNullBody.add(st.invoke(setDataMethod(dt.getName())).arg(fname).arg(rvar));
+            JBlock elseBody = ifNull._else();
+            elseBody.add(st.invoke("setToNull").arg(fname));
 
-            JExpression rvar = processMapField(dt, dataBind, fname, session, ifBody);
-
-            ifBody.assign(JExpr.component(bindArgs, pos), rvar);
+            
 
         }
         body.add(st.invoke("bind").arg(bindArgs));
@@ -564,8 +571,6 @@ public class JCQLMain {
                             throw new UnsupportedOperationException("Collections of tuples within " +
                                     "UDT are not yet supported.");
                         }
-                    } else {
-                        return data.invoke("get" + camelize(fname));
                     }
                 } else if (argTypes.size() == 2) {
                     DataType argDt0 = argTypes.get(0);
