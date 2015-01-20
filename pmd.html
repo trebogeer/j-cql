@@ -9,7 +9,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="Date-Revision-yyyymmdd" content="20150120" />
     <meta http-equiv="Content-Language" content="en" />
-    <title>jcql &#x2013; About</title>
+    <title>jcql &#x2013; PMD Results</title>
     <link rel="stylesheet" href="./css/apache-maven-fluido-1.3.1.min.css" />
     <link rel="stylesheet" href="./css/site.css" />
     <link rel="stylesheet" href="./css/print.css" media="print" />
@@ -159,111 +159,104 @@
                     
                 <ul class="nav nav-list">
                     <li class="nav-header">Project Documentation</li>
-                                                                                                                                                                                                                                                                                                                  
+                                                                                                                                                                                                                                                                                                        
       <li>
   
                           <a href="project-info.html" title="Project Information">
-          <i class="icon-chevron-down"></i>
+          <i class="icon-chevron-right"></i>
         Project Information</a>
+                  </li>
+                                                                                                                                                                                                                                                                                  
+      <li>
+  
+                          <a href="project-reports.html" title="Project Reports">
+          <i class="icon-chevron-down"></i>
+        Project Reports</a>
                     <ul class="nav nav-list">
+                    
+      <li>
+  
+                          <a href="findbugs.html" title="FindBugs">
+          <i class="none"></i>
+        FindBugs</a>
+            </li>
                     
       <li class="active">
   
-            <a href="#"><i class="none"></i>About</a>
+            <a href="#"><i class="none"></i>PMD</a>
           </li>
                     
       <li>
   
-                          <a href="team-list.html" title="Project Team">
+                          <a href="apidocs/index.html" title="JavaDocs">
           <i class="none"></i>
-        Project Team</a>
+        JavaDocs</a>
             </li>
                     
       <li>
   
-                          <a href="dependency-info.html" title="Dependency Information">
+                          <a href="testapidocs/index.html" title="Test JavaDocs">
           <i class="none"></i>
-        Dependency Information</a>
+        Test JavaDocs</a>
             </li>
                     
       <li>
   
-                          <a href="plugins.html" title="Project Plugins">
+                          <a href="checkstyle.html" title="Checkstyle">
           <i class="none"></i>
-        Project Plugins</a>
+        Checkstyle</a>
             </li>
                     
       <li>
   
-                          <a href="integration.html" title="Continuous Integration">
+                          <a href="xref/index.html" title="Source Xref">
           <i class="none"></i>
-        Continuous Integration</a>
+        Source Xref</a>
             </li>
                     
       <li>
   
-                          <a href="issue-tracking.html" title="Issue Tracking">
+                          <a href="xref-test/index.html" title="Test Source Xref">
           <i class="none"></i>
-        Issue Tracking</a>
+        Test Source Xref</a>
             </li>
                     
       <li>
   
-                          <a href="source-repository.html" title="Source Repository">
+                          <a href="changelog.html" title="Change Log">
           <i class="none"></i>
-        Source Repository</a>
+        Change Log</a>
             </li>
                     
       <li>
   
-                          <a href="license.html" title="Project License">
+                          <a href="file-activity.html" title="File Activity">
           <i class="none"></i>
-        Project License</a>
+        File Activity</a>
             </li>
                     
       <li>
   
-                          <a href="plugin-management.html" title="Plugin Management">
+                          <a href="dev-activity.html" title="Developer Activity">
           <i class="none"></i>
-        Plugin Management</a>
+        Developer Activity</a>
             </li>
                     
       <li>
   
-                          <a href="distribution-management.html" title="Distribution Management">
+                          <a href="failsafe-report.html" title="Failsafe Report">
           <i class="none"></i>
-        Distribution Management</a>
+        Failsafe Report</a>
             </li>
                     
       <li>
   
-                          <a href="project-summary.html" title="Project Summary">
+                          <a href="surefire-report.html" title="Surefire Report">
           <i class="none"></i>
-        Project Summary</a>
-            </li>
-                    
-      <li>
-  
-                          <a href="mail-lists.html" title="Mailing Lists">
-          <i class="none"></i>
-        Mailing Lists</a>
-            </li>
-                    
-      <li>
-  
-                          <a href="dependencies.html" title="Dependencies">
-          <i class="none"></i>
-        Dependencies</a>
+        Surefire Report</a>
             </li>
               </ul>
         </li>
-                                                                                                                                                                                                                                                                        
-      <li>
-  
-                          <a href="project-reports.html" title="Project Reports">
-          <i class="icon-chevron-right"></i>
-        Project Reports</a>
-                  </li>
             </ul>
                 
                     
@@ -305,9 +298,67 @@
         <div id="bodyColumn"  class="span9" >
                                   
             <div class="section">
-<h2><a name="About_JCQL"></a>About JCQL</h2><a name="About_JCQL"></a>
-<p>The tool allowing to generate boilerplate java code (java beans/result set mapper) from existing
-        cassandra schema.</p></div>
+<h2><a name="PMD_Results"></a>PMD Results</h2>
+<p>The following document contains the results of <a class="externalLink" href="http://pmd.sourceforge.net/">PMD</a> 5.2.1.</p></div>
+<div class="section">
+<h2><a name="Files"></a>Files</h2>
+<div class="section">
+<h3><a name="comtrebogeerjcqlJCQLMain.java"></a>com/trebogeer/jcql/JCQLMain.java</h3>
+<table border="0" class="table table-striped">
+<tr class="a">
+<th>Violation</th>
+<th>Line</th></tr>
+<tr class="b">
+<td>Too many static imports may lead to messy code</td>
+<td><a href="./xref/com/trebogeer/jcql/JCQLMain.html#L18">18</a>&#x2013;<a href="./xref/com/trebogeer/jcql/JCQLMain.html#L931">931</a></td></tr>
+<tr class="a">
+<td>Avoid unused imports such as 'java.util.Collections'</td>
+<td><a href="./xref/com/trebogeer/jcql/JCQLMain.html#L60">60</a></td></tr>
+<tr class="b">
+<td>Avoid unused local variables such as 'toUDTArg0'.</td>
+<td><a href="./xref/com/trebogeer/jcql/JCQLMain.html#L330">330</a></td></tr>
+<tr class="a">
+<td>Avoid unused local variables such as 'toUDTArg1'.</td>
+<td><a href="./xref/com/trebogeer/jcql/JCQLMain.html#L331">331</a></td></tr>
+<tr class="b">
+<td>Avoid unused private methods such as 'toUDTMapperCode(JDefinedClass,JClass,Collection,String)'.</td>
+<td><a href="./xref/com/trebogeer/jcql/JCQLMain.html#L480">480</a>&#x2013;<a href="./xref/com/trebogeer/jcql/JCQLMain.html#L483">483</a></td></tr>
+<tr class="a">
+<td>Avoid empty if statements</td>
+<td><a href="./xref/com/trebogeer/jcql/JCQLMain.html#L657">657</a>&#x2013;<a href="./xref/com/trebogeer/jcql/JCQLMain.html#L659">659</a></td></tr>
+<tr class="b">
+<td>Avoid unused private methods such as 'rowMapperCode(JDefinedClass,JClass,Collection)'.</td>
+<td><a href="./xref/com/trebogeer/jcql/JCQLMain.html#L714">714</a>&#x2013;<a href="./xref/com/trebogeer/jcql/JCQLMain.html#L715">715</a></td></tr></table></div>
+<div class="section">
+<h3><a name="comtrebogeerjcqlJCQLUtils.java"></a>com/trebogeer/jcql/JCQLUtils.java</h3>
+<table border="0" class="table table-striped">
+<tr class="a">
+<th>Violation</th>
+<th>Line</th></tr>
+<tr class="b">
+<td>Avoid unused imports such as 'java.util.function.Function'</td>
+<td><a href="./xref/com/trebogeer/jcql/JCQLUtils.html#L39">39</a></td></tr>
+<tr class="a">
+<td>Avoid unused local variables such as 'ut'.</td>
+<td><a href="./xref/com/trebogeer/jcql/JCQLUtils.html#L281">281</a></td></tr>
+<tr class="b">
+<td>Avoid unused local variables such as 'tt'.</td>
+<td><a href="./xref/com/trebogeer/jcql/JCQLUtils.html#L284">284</a></td></tr>
+<tr class="a">
+<td>Avoid empty if statements</td>
+<td><a href="./xref/com/trebogeer/jcql/JCQLUtils.html#L297">297</a>&#x2013;<a href="./xref/com/trebogeer/jcql/JCQLUtils.html#L299">299</a></td></tr>
+<tr class="b">
+<td>Avoid empty if statements</td>
+<td><a href="./xref/com/trebogeer/jcql/JCQLUtils.html#L299">299</a>&#x2013;<a href="./xref/com/trebogeer/jcql/JCQLUtils.html#L301">301</a></td></tr>
+<tr class="a">
+<td>Avoid empty if statements</td>
+<td><a href="./xref/com/trebogeer/jcql/JCQLUtils.html#L308">308</a>&#x2013;<a href="./xref/com/trebogeer/jcql/JCQLUtils.html#L311">311</a></td></tr>
+<tr class="b">
+<td>Avoid empty if statements</td>
+<td><a href="./xref/com/trebogeer/jcql/JCQLUtils.html#L311">311</a>&#x2013;<a href="./xref/com/trebogeer/jcql/JCQLUtils.html#L314">314</a></td></tr>
+<tr class="a">
+<td>Avoid empty if statements</td>
+<td><a href="./xref/com/trebogeer/jcql/JCQLUtils.html#L316">316</a>&#x2013;<a href="./xref/com/trebogeer/jcql/JCQLUtils.html#L318">318</a></td></tr></table></div></div>
                   </div>
             </div>
           </div>
