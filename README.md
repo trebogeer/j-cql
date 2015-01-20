@@ -9,14 +9,13 @@ and is less error-prone compared to hand coding. Accompanied with proper CI and 
  database and java models at any point of application lifecycle from development to production rollout.
 
 
-To try out:
-=====
+####To try out:
 
-1. git clone https://github.com/trebogeer/j-cql.git
-2. cd j-cql/jcql
-3. mvn clean verify
+* _git clone https://github.com/trebogeer/j-cql.git_
+* _cd j-cql/jcql_
+* _mvn clean verify_
 
- Automatically generated java code from sample cassandra schema (../src/main/resources/schema.cql) will become available 
+Automatically generated java code from sample cassandra schema (../src/main/resources/schema.cql) will become available 
 under ../target/autogen/ 
 
 (ツ)
