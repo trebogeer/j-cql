@@ -105,8 +105,6 @@
 </li>
                                   <li>      <a href="dev-activity.html"  title="Developer Activity">Developer Activity</a>
 </li>
-                                  <li>      <a href="failsafe-report.html"  title="Failsafe Report">Failsafe Report</a>
-</li>
                                   <li>      <a href="surefire-report.html"  title="Surefire Report">Surefire Report</a>
 </li>
                               </ul>
@@ -257,7 +255,7 @@
           </li>
               </ul>
         </li>
-                                                                                                                                                                                                                                                                        
+                                                                                                                                                                                                                                                      
       <li>
   
                           <a href="project-reports.html" title="Project Reports">
@@ -450,18 +448,22 @@
 <div class="section">
 <h3><a name="Dependency_Tree"></a>Dependency Tree</h3>
 <ul>
-<li>com.trebogeer.jcql:jcql:jar:0.8.1-SNAPSHOT <img id="_772489629" src="./images/icon_info_sml.gif" alt="Information" onclick="toggleDependencyDetail( '_1820233975', '_772489629' );" style="cursor: pointer;vertical-align:text-bottom;"></img><div id="_1820233975" style="display:none">
+<li>com.trebogeer.jcql:jcql:jar:0.8.1-SNAPSHOT <img id="_1182871866" src="./images/icon_info_sml.gif" alt="Information" onclick="toggleDependencyDetail( '_2033294067', '_1182871866' );" style="cursor: pointer;vertical-align:text-bottom;"></img><div id="_2033294067" style="display:none">
 <table border="0" class="table table-striped">
 <tr class="a">
 <th>JCQL</th></tr>
 <tr class="b">
 <td>
-<p><b>Description: </b>The tool allowing to generate boilerplate java code (java beans/result set mapper) from existing
-        cassandra schema.</p>
+<p><b>Description: </b>JCQL is a tool allowing to generate boilerplate java code from existing
+        cassandra schema. It is intended to be used with Cassandra 2.1+ due to support of UDTs (User Defined Types)/Tuples/Collections.
+        Cassandra's UDTs/Tuples/Collections and an ability to introspect schema through java driver make it possible to automatically
+        generate POJOs and corresponding mappers between database and java models. Properly generated java code saves development efforts
+        and is error prompt. Accompanied with proper CI and deployment it can also guarantee consistency between database and java models
+        at any point of application lifecycle from development to production rollout.</p>
 <p><b>URL: </b><a class="externalLink" href="http://github.com/trebogeer/j-cql">http://github.com/trebogeer/j-cql</a></p>
 <p><b>Project License: </b><a class="externalLink" href="http://www.apache.org/licenses/LICENSE-2.0.txt">Apache License, Version 2.0</a></p></td></tr></table></div>
 <ul>
-<li>com.sun.xml.bind:jaxb-xjc:jar:2.2.11 (compile) <img id="_2019419448" src="./images/icon_info_sml.gif" alt="Information" onclick="toggleDependencyDetail( '_2059542933', '_2019419448' );" style="cursor: pointer;vertical-align:text-bottom;"></img><div id="_2059542933" style="display:none">
+<li>com.sun.xml.bind:jaxb-xjc:jar:2.2.11 (compile) <img id="_1450169576" src="./images/icon_info_sml.gif" alt="Information" onclick="toggleDependencyDetail( '_1980272231', '_1450169576' );" style="cursor: pointer;vertical-align:text-bottom;"></img><div id="_1980272231" style="display:none">
 <table border="0" class="table table-striped">
 <tr class="a">
 <th>Old JAXB XJC</th></tr>
@@ -471,7 +473,7 @@
         In other words: the *tool* to generate java classes for the given xml representation.</p>
 <p><b>URL: </b><a class="externalLink" href="http://jaxb.java.net/jaxb-bundles/jaxb-xjc">http://jaxb.java.net/jaxb-bundles/jaxb-xjc</a></p>
 <p><b>Project License: </b><a class="externalLink" href="http://glassfish.java.net/public/CDDL+GPL_1_1.html">CDDL+GPL License</a></p></td></tr></table></div></li>
-<li>args4j:args4j:jar:2.0.23 (compile) <img id="_4778285" src="./images/icon_info_sml.gif" alt="Information" onclick="toggleDependencyDetail( '_1316581243', '_4778285' );" style="cursor: pointer;vertical-align:text-bottom;"></img><div id="_1316581243" style="display:none">
+<li>args4j:args4j:jar:2.0.23 (compile) <img id="_198594635" src="./images/icon_info_sml.gif" alt="Information" onclick="toggleDependencyDetail( '_1701408692', '_198594635' );" style="cursor: pointer;vertical-align:text-bottom;"></img><div id="_1701408692" style="display:none">
 <table border="0" class="table table-striped">
 <tr class="a">
 <th>args4j</th></tr>
@@ -480,7 +482,7 @@
 <p><b>Description: </b>args4j : Java command line arguments parser</p>
 <p><b>URL: </b><a class="externalLink" href="http://args4j.dev.java.net/args4j/">http://args4j.dev.java.net/args4j/</a></p>
 <p><b>Project License: </b><a class="externalLink" href="http://www.opensource.org/licenses/mit-license.php">MIT License</a></p></td></tr></table></div></li>
-<li>org.yaml:snakeyaml:jar:1.14 (compile) <img id="_1104941358" src="./images/icon_info_sml.gif" alt="Information" onclick="toggleDependencyDetail( '_736452431', '_1104941358' );" style="cursor: pointer;vertical-align:text-bottom;"></img><div id="_736452431" style="display:none">
+<li>org.yaml:snakeyaml:jar:1.14 (compile) <img id="_1321161410" src="./images/icon_info_sml.gif" alt="Information" onclick="toggleDependencyDetail( '_2088094855', '_1321161410' );" style="cursor: pointer;vertical-align:text-bottom;"></img><div id="_2088094855" style="display:none">
 <table border="0" class="table table-striped">
 <tr class="a">
 <th>SnakeYAML</th></tr>
@@ -489,7 +491,7 @@
 <p><b>Description: </b>YAML 1.1 parser and emitter for Java</p>
 <p><b>URL: </b><a class="externalLink" href="http://www.snakeyaml.org">http://www.snakeyaml.org</a></p>
 <p><b>Project License: </b><a href="LICENSE.txt">Apache License Version 2.0</a></p></td></tr></table></div></li>
-<li>junit:junit:jar:4.12 (test) <img id="_890798362" src="./images/icon_info_sml.gif" alt="Information" onclick="toggleDependencyDetail( '_999659671', '_890798362' );" style="cursor: pointer;vertical-align:text-bottom;"></img><div id="_999659671" style="display:none">
+<li>junit:junit:jar:4.12 (test) <img id="_951344721" src="./images/icon_info_sml.gif" alt="Information" onclick="toggleDependencyDetail( '_1773673668', '_951344721' );" style="cursor: pointer;vertical-align:text-bottom;"></img><div id="_1773673668" style="display:none">
 <table border="0" class="table table-striped">
 <tr class="a">
 <th>JUnit</th></tr>
@@ -499,7 +501,7 @@
 <p><b>URL: </b><a class="externalLink" href="http://junit.org">http://junit.org</a></p>
 <p><b>Project License: </b><a class="externalLink" href="http://www.eclipse.org/legal/epl-v10.html">Eclipse Public License 1.0</a></p></td></tr></table></div>
 <ul>
-<li>org.hamcrest:hamcrest-core:jar:1.3 (test) <img id="_679564900" src="./images/icon_info_sml.gif" alt="Information" onclick="toggleDependencyDetail( '_1894384900', '_679564900' );" style="cursor: pointer;vertical-align:text-bottom;"></img><div id="_1894384900" style="display:none">
+<li>org.hamcrest:hamcrest-core:jar:1.3 (test) <img id="_2010101851" src="./images/icon_info_sml.gif" alt="Information" onclick="toggleDependencyDetail( '_72004134', '_2010101851' );" style="cursor: pointer;vertical-align:text-bottom;"></img><div id="_72004134" style="display:none">
 <table border="0" class="table table-striped">
 <tr class="a">
 <th>Hamcrest Core</th></tr>
@@ -508,7 +510,7 @@
 <p><b>Description: </b>This is the core API of hamcrest matcher framework to be used by third-party framework providers. This includes the a foundation set of matcher implementations for common operations.</p>
 <p><b>URL: </b><a class="externalLink" href="https://github.com/hamcrest/JavaHamcrest/hamcrest-core">https://github.com/hamcrest/JavaHamcrest/hamcrest-core</a></p>
 <p><b>Project License: </b><a class="externalLink" href="http://www.opensource.org/licenses/bsd-license.php">New BSD License</a></p></td></tr></table></div></li></ul></li>
-<li>com.google.guava:guava:jar:17.0 (compile) <img id="_714347996" src="./images/icon_info_sml.gif" alt="Information" onclick="toggleDependencyDetail( '_321380438', '_714347996' );" style="cursor: pointer;vertical-align:text-bottom;"></img><div id="_321380438" style="display:none">
+<li>com.google.guava:guava:jar:17.0 (compile) <img id="_1313793548" src="./images/icon_info_sml.gif" alt="Information" onclick="toggleDependencyDetail( '_1209803106', '_1313793548' );" style="cursor: pointer;vertical-align:text-bottom;"></img><div id="_1209803106" style="display:none">
 <table border="0" class="table table-striped">
 <tr class="a">
 <th>Guava: Google Core Libraries for Java</th></tr>
@@ -522,7 +524,7 @@
     per the JSR-305 spec.</p>
 <p><b>URL: </b><a class="externalLink" href="http://code.google.com/p/guava-libraries/guava">http://code.google.com/p/guava-libraries/guava</a></p>
 <p><b>Project License: </b><a class="externalLink" href="http://www.apache.org/licenses/LICENSE-2.0.txt">The Apache Software License, Version 2.0</a></p></td></tr></table></div></li>
-<li>org.javatuples:javatuples:jar:1.2 (compile) <img id="_1122958204" src="./images/icon_info_sml.gif" alt="Information" onclick="toggleDependencyDetail( '_338696643', '_1122958204' );" style="cursor: pointer;vertical-align:text-bottom;"></img><div id="_338696643" style="display:none">
+<li>org.javatuples:javatuples:jar:1.2 (compile) <img id="_781780784" src="./images/icon_info_sml.gif" alt="Information" onclick="toggleDependencyDetail( '_394756484', '_781780784' );" style="cursor: pointer;vertical-align:text-bottom;"></img><div id="_394756484" style="display:none">
 <table border="0" class="table table-striped">
 <tr class="a">
 <th>javatuples</th></tr>
@@ -531,7 +533,7 @@
 <p><b>Description: </b>Java library for tuples in Java.</p>
 <p><b>URL: </b><a class="externalLink" href="http://www.javatuples.org">http://www.javatuples.org</a></p>
 <p><b>Project License: </b><a class="externalLink" href="http://www.apache.org/licenses/LICENSE-2.0.txt">The Apache Software License, Version 2.0</a></p></td></tr></table></div></li>
-<li>org.slf4j:slf4j-api:jar:1.7.5 (compile) <img id="_139012178" src="./images/icon_info_sml.gif" alt="Information" onclick="toggleDependencyDetail( '_663084357', '_139012178' );" style="cursor: pointer;vertical-align:text-bottom;"></img><div id="_663084357" style="display:none">
+<li>org.slf4j:slf4j-api:jar:1.7.5 (compile) <img id="_1564774570" src="./images/icon_info_sml.gif" alt="Information" onclick="toggleDependencyDetail( '_1831982158', '_1564774570' );" style="cursor: pointer;vertical-align:text-bottom;"></img><div id="_1831982158" style="display:none">
 <table border="0" class="table table-striped">
 <tr class="a">
 <th>SLF4J API Module</th></tr>
@@ -540,7 +542,7 @@
 <p><b>Description: </b>The slf4j API</p>
 <p><b>URL: </b><a class="externalLink" href="http://www.slf4j.org">http://www.slf4j.org</a></p>
 <p><b>Project License: </b><a class="externalLink" href="http://www.opensource.org/licenses/mit-license.php">MIT License</a></p></td></tr></table></div></li>
-<li>ch.qos.logback:logback-classic:jar:1.0.9 (compile) <img id="_448596490" src="./images/icon_info_sml.gif" alt="Information" onclick="toggleDependencyDetail( '_889201690', '_448596490' );" style="cursor: pointer;vertical-align:text-bottom;"></img><div id="_889201690" style="display:none">
+<li>ch.qos.logback:logback-classic:jar:1.0.9 (compile) <img id="_1811954652" src="./images/icon_info_sml.gif" alt="Information" onclick="toggleDependencyDetail( '_1489121013', '_1811954652' );" style="cursor: pointer;vertical-align:text-bottom;"></img><div id="_1489121013" style="display:none">
 <table border="0" class="table table-striped">
 <tr class="a">
 <th>Logback Classic Module</th></tr>
@@ -550,7 +552,7 @@
 <p><b>URL: </b><a class="externalLink" href="http://logback.qos.ch">http://logback.qos.ch</a></p>
 <p><b>Project License: </b><a class="externalLink" href="http://www.eclipse.org/legal/epl-v10.html">Eclipse Public License - v 1.0</a><a class="externalLink" href="http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html">GNU Lesser General Public License</a></p></td></tr></table></div>
 <ul>
-<li>ch.qos.logback:logback-core:jar:1.0.9 (compile) <img id="_1141316356" src="./images/icon_info_sml.gif" alt="Information" onclick="toggleDependencyDetail( '_1466078197', '_1141316356' );" style="cursor: pointer;vertical-align:text-bottom;"></img><div id="_1466078197" style="display:none">
+<li>ch.qos.logback:logback-core:jar:1.0.9 (compile) <img id="_1265817714" src="./images/icon_info_sml.gif" alt="Information" onclick="toggleDependencyDetail( '_498191392', '_1265817714' );" style="cursor: pointer;vertical-align:text-bottom;"></img><div id="_498191392" style="display:none">
 <table border="0" class="table table-striped">
 <tr class="a">
 <th>Logback Core Module</th></tr>
@@ -559,7 +561,7 @@
 <p><b>Description: </b>logback-core module</p>
 <p><b>URL: </b><a class="externalLink" href="http://logback.qos.ch">http://logback.qos.ch</a></p>
 <p><b>Project License: </b><a class="externalLink" href="http://www.eclipse.org/legal/epl-v10.html">Eclipse Public License - v 1.0</a><a class="externalLink" href="http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html">GNU Lesser General Public License</a></p></td></tr></table></div></li></ul></li>
-<li>com.datastax.cassandra:cassandra-driver-core:jar:2.1.4 (compile) <img id="_592116222" src="./images/icon_info_sml.gif" alt="Information" onclick="toggleDependencyDetail( '_1041729597', '_592116222' );" style="cursor: pointer;vertical-align:text-bottom;"></img><div id="_1041729597" style="display:none">
+<li>com.datastax.cassandra:cassandra-driver-core:jar:2.1.4 (compile) <img id="_800219225" src="./images/icon_info_sml.gif" alt="Information" onclick="toggleDependencyDetail( '_1574948309', '_800219225' );" style="cursor: pointer;vertical-align:text-bottom;"></img><div id="_1574948309" style="display:none">
 <table border="0" class="table table-striped">
 <tr class="a">
 <th>DataStax Java Driver for Apache Cassandra - Core</th></tr>
@@ -569,7 +571,7 @@
 <p><b>URL: </b><a class="externalLink" href="https://github.com/datastax/java-driver">https://github.com/datastax/java-driver</a></p>
 <p><b>Project License: </b><a class="externalLink" href="http://www.apache.org/licenses/LICENSE-2.0.txt">Apache 2</a></p></td></tr></table></div>
 <ul>
-<li>com.codahale.metrics:metrics-core:jar:3.0.2 (compile) <img id="_483140777" src="./images/icon_info_sml.gif" alt="Information" onclick="toggleDependencyDetail( '_530113115', '_483140777' );" style="cursor: pointer;vertical-align:text-bottom;"></img><div id="_530113115" style="display:none">
+<li>com.codahale.metrics:metrics-core:jar:3.0.2 (compile) <img id="_1628580670" src="./images/icon_info_sml.gif" alt="Information" onclick="toggleDependencyDetail( '_1811782935', '_1628580670' );" style="cursor: pointer;vertical-align:text-bottom;"></img><div id="_1811782935" style="display:none">
 <table border="0" class="table table-striped">
 <tr class="a">
 <th>Metrics Core</th></tr>
@@ -580,7 +582,7 @@
         components in your production environment.</p>
 <p><b>URL: </b><a class="externalLink" href="http://metrics.codahale.com/metrics-core/">http://metrics.codahale.com/metrics-core/</a></p>
 <p><b>Project License: </b><a class="externalLink" href="http://www.apache.org/licenses/LICENSE-2.0.html">Apache License 2.0</a></p></td></tr></table></div></li></ul></li>
-<li>com.datastax.cassandra:cassandra-driver-mapping:jar:2.1.4 (compile) <img id="_1774162423" src="./images/icon_info_sml.gif" alt="Information" onclick="toggleDependencyDetail( '_1404054453', '_1774162423' );" style="cursor: pointer;vertical-align:text-bottom;"></img><div id="_1404054453" style="display:none">
+<li>com.datastax.cassandra:cassandra-driver-mapping:jar:2.1.4 (compile) <img id="_868936932" src="./images/icon_info_sml.gif" alt="Information" onclick="toggleDependencyDetail( '_532218116', '_868936932' );" style="cursor: pointer;vertical-align:text-bottom;"></img><div id="_532218116" style="display:none">
 <table border="0" class="table table-striped">
 <tr class="a">
 <th>DataStax Java Driver for Apache Cassandra - Object Mapping</th></tr>
