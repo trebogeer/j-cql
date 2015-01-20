@@ -442,9 +442,9 @@ public class JCQLMain {
         forEachBody0.add(defsMap.invoke("put").arg(entry0.invoke("getName")).arg(cnt));
         forEachBody0.assignPlus(cnt, JExpr.lit(1));
 
-        JVar bindArgs = body.decl(model.ref(Object[].class), "bindArgs",
+        /*JVar bindArgs = body.decl(model.ref(Object[].class), "bindArgs",
                 JExpr.newArray(model.ref(Object.class), defsMap.invoke("size")));
-
+*/
         for (Pair<String, DataType> field : dataTypes) {
             DataType dt = field.getValue1();
             String fname = field.getValue0();
@@ -456,14 +456,14 @@ public class JCQLMain {
             JExpression rvar = processMapField(dt, dataBind, fname, session, ifNullBody);
             // TODO set individual fields instead directly to statement
             //ifNullBody.assign(JExpr.component(bindArgs, pos), rvar);
-            ifNullBody.add(st.invoke(setDataMethod(dt.getName())).arg(fname).arg(rvar));
+            ifNullBody.add(st.invoke(setDataMethod(dt.getName())).arg(pos).arg(rvar));
             JBlock elseBody = ifNull._else();
             elseBody.add(st.invoke("setToNull").arg(fname));
 
             
 
         }
-        body.add(st.invoke("bind").arg(bindArgs));
+       // body.add(st.invoke("bind").arg(bindArgs));
     }
 
 
