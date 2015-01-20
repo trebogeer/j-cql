@@ -375,7 +375,7 @@ public class JCQLMain {
 
                     // bind to statement code
 
-                 //   binderToStatemet(clazz, binder, dataTypes);
+                    binderToStatemet(clazz, binder, dataTypes);
 
                     // fields/getters/setters/annotations
                     clazz.annotate(Table.class).param("keyspace", cfg.keysapce).param("name", table);
@@ -522,55 +522,8 @@ public class JCQLMain {
                         .staticInvoke("udtMapper")
                         .invoke("toUDT").arg(data.invoke("get" + fnamec)).arg(session);
             } else if (dt instanceof TupleType) {
-//                TupleType tt = (TupleType) dt;
-//                List<DataType> componentTypes = tt.getComponentTypes();
-//                Class<?> tupleClass = getTupleClass(componentTypes.size());
-//                JClass tuple = model.ref(tupleClass);
-//
-//                JInvocation of = model.ref(TupleType.class).staticInvoke("of");
-//                for (DataType adt : componentTypes) {
-//                    tuple = tuple.narrow(getType(adt, model, cfg));
-//                }
-//                JVar tupleRef = body.decl(tuple, fnamecl + "Tuple", data.invoke("get" + fnamec));
-//
-//                int i = 0;
-//                ArrayList<JExpression> getvalues = new ArrayList<>(componentTypes.size());
-//                for (DataType adt : componentTypes) {
-//                    JExpression jexpr = JExpr._null();
-//                    getvalues.add(i, tupleRef.invoke("getValue" + i));
-//                    if (adt.isFrozen()) {
-//                        if (adt instanceof UserType) {
-//                            UserType ut = (UserType) adt;
-//                            String tname = ut.getTypeName();
-//
-//                            JVar udtValue = body.decl(model.ref(UDTValue.class),
-//                                    camelize(tname, true),
-//                                    model.ref(getFullClassName(cfg.jpackage, tname))
-//                                            .staticInvoke("udtMapper").invoke("toUDT")
-//                                            .arg(tupleRef.invoke("getValue" + i)).arg(session));
-//
-//                            JVar userTypeE = body.decl(model.ref(UserType.class), camelize(tname, true) + "UserType",
-//                                    udtValue.invoke("getType"));
-//                            jexpr = userTypeE;
-//                            getvalues.set(i, udtValue);
-//                        } else if (adt instanceof TupleType) {
-//                            // TODO yep, all the hell above once again
-//                        }
-//                    } else if (adt.isCollection()) {
-//
-//                    } else {
-//                        jexpr = model.ref(DataType.class).staticInvoke(typeToDTStaticMthod(adt.getName()));
-//                    }
-//                    i++;
-//                    of.arg(jexpr);
-//                }
-//                JVar ttE = body.decl(model.ref(TupleType.class), camelize(fname, true) + "TupleType", of);
-//                JVar tvE = body.decl(model.ref(TupleValue.class), camelize(fname, true) + "TupleValue", ttE.invoke("newValue"));
-//                for (int a = 0; a < getvalues.size(); a++) {
-//                    body.add(tvE.invoke(setDataMethod(componentTypes.get(a).getName())).arg(JExpr.lit(a)).arg(getvalues.get(a)));
-//                }
-//                return tvE;
-                return processTuple(dt, data, fnamec ,body, session);
+                Pair<JExpression, JExpression> refVal = processTuple(dt, data, fnamec ,body, session);
+                return refVal.getValue1();
             }
 
         } else if (dt.isCollection()) {
@@ -648,17 +601,15 @@ public class JCQLMain {
                                 : v;
                         forEachBody.add(target.invoke("put").arg(key).arg(value));
                         return target;
-                    } else {
-                        return data.invoke("get" + camelize(fname));
                     }
                 }
 
             }
         }
-        return JExpr._null();
+        return data.invoke("get" + camelize(fname));
     }
 
-    private JExpression processTuple(DataType dt, JVar data, String fnamec, JBlock body, JVar session) {
+    private Pair<JExpression, JExpression> processTuple(DataType dt, JVar data, String fnamec, JBlock body, JVar session) {
         TupleType tt = (TupleType) dt;
         List<DataType> componentTypes = tt.getComponentTypes();
         Class<?> tupleClass = getTupleClass(componentTypes.size());
@@ -691,10 +642,12 @@ public class JCQLMain {
                     jexpr = userTypeE;
                     getvalues.set(i, udtValue);
                 } else if (adt instanceof TupleType) {
-                   // JExpression r = processTuple(adt, tupleRef, "Value" + i, body, session);
-                   // getvalues.set(i, r);
-                   // jexpr = JExpr.cast(model.ref(DataType.class), r);
-                    jexpr = JExpr._null();
+                    Pair<JExpression, JExpression> rvPair = processTuple(adt, tupleRef, "Value" + i, body, session);
+                    JExpression ref = rvPair.getValue0();
+                    JExpression value = rvPair.getValue1();
+                    getvalues.set(i, value);
+                    jexpr = ref;
+                   // jexpr = JExpr._null();
                 }
             } else if (adt.isCollection()) {
                 // TODO implement
@@ -709,7 +662,7 @@ public class JCQLMain {
         for (int a = 0; a < getvalues.size(); a++) {
             body.add(tvE.invoke(setDataMethod(componentTypes.get(a).getName())).arg(JExpr.lit(a)).arg(getvalues.get(a)));
         }
-        return tvE;
+        return Pair.with(ttE, tvE);
     }
 
     /**
