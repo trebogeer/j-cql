@@ -11,16 +11,16 @@
     <inceptionYear>2015</inceptionYear>
     <url>http://github.com/trebogeer/j-cql</url>
     <description>
-        JCQL is a tool allowing to generate boilerplate java code from existing
-        cassandra schema. It is intended to be used with Cassandra 2.1+ due to support of UDTs (User Defined
-        Types)/Tuples/Collections.
+        JCQL is a tool allowing to generate boilerplate java code from existing cassandra schema. It is intended to be
+        used with Cassandra 2.1+ due to support of UDTs (User Defined Types)/Tuples/Collections.
         Cassandra's UDTs/Tuples/Collections and an ability to introspect schema through java driver make it possible to
-        automatically
-        generate POJOs and corresponding mappers between database and java models. Properly generated java code saves
-        development efforts
-        and is less error-prone compared to hand coding. Accompanied with proper CI and deployment it can also guarantee
-        consistency between database and java models
-        at any point of application lifecycle from development to production rollout.
+        automatically generate POJOs and corresponding mappers between database and java models. Properly generated java
+        code saves development efforts and is less error-prone compared to hand coding. Accompanied with proper CI and
+        deployment it can also guarantee consistency between database and java models at any point of application
+        lifecycle from development to production rollout. JCQL does not rely on java reflection or annotations which
+        means all discrepancies between actual cassandra schema and what client code expects it to be will be identified
+        during compilation not at runtime in the middle of the night right after production release. No need to worry
+        about Cassandra client code performance implications due to use of reflection.
     </description>
 
     <issueManagement>
@@ -71,6 +71,14 @@
         <cs.test.pwd>cscql</cs.test.pwd>
         <cs.test.ks>jcql</cs.test.ks>
         <cassandraVersion>2.1.2</cassandraVersion>
+        <!---->
+        <build.helper.v>1.9.1</build.helper.v>
+        <cassandra.maven.plugin.v>2.1.2-1</cassandra.maven.plugin.v>
+        <maven.jar.plugin.v>2.5</maven.jar.plugin.v>
+        <maven.source.plugin.v>2.2.1</maven.source.plugin.v>
+        <mavem.failsafe.plugin.v>2.7.1</mavem.failsafe.plugin.v>
+        <exec.maven.plugin.v>1.3.2</exec.maven.plugin.v>
+        <maven.compiler.plugin.v>3.2</maven.compiler.plugin.v>
     </properties>
 
     <pluginRepositories>
@@ -357,12 +365,13 @@
         </dependency>
     </dependencies>
 
+
     <build>
         <plugins>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>build-helper-maven-plugin</artifactId>
-                <version>1.8</version>
+                <version>${build.helper.v}</version>
                 <executions>
                     <execution>
                         <id>ports-reserve</id>
@@ -392,7 +401,7 @@
                             </sources>
                         </configuration>
                     </execution>
-                    <!--execution>
+                    <execution>
                         <id>add-it-test-source</id>
                         <phase>pre-integration-test</phase>
                         <goals>
@@ -401,15 +410,33 @@
                         <configuration>
                             <sources>
                                 <source>${project.basedir}/src/it-gen/java/</source>
+                                <source>${project.build.directory}/autogen/</source>
                             </sources>
                         </configuration>
-                    </execution-->
+                    </execution>
                 </executions>
             </plugin>
+            <!--<plugin>-->
+                <!--<artifactId>maven-dependency-plugin</artifactId>-->
+                <!--<version>2.9</version>-->
+                <!--<executions>-->
+                    <!--<execution>-->
+                        <!--<phase>pre-integration-test</phase>-->
+                        <!--<goals>-->
+                            <!--<goal>build-classpath</goal>-->
+                        <!--</goals>-->
+                    <!--</execution>-->
+                <!--</executions>-->
+                <!--<configuration>-->
+                    <!--<outputFilterFile>true</outputFilterFile>-->
+                    <!--<outputFile>${project.build.directory}/classpath.properties</outputFile>-->
+
+                <!--</configuration>-->
+            <!--</plugin>-->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>cassandra-maven-plugin</artifactId>
-                <version>2.1.2-1</version>
+                <version>${cassandra.maven.plugin.v}</version>
                 <configuration>
                     <rpcPort>${cs.rpc}</rpcPort>
                     <jmxPort>${cs.jmx}</jmxPort>
@@ -442,14 +469,16 @@
             </plugin>
             <plugin>
                 <artifactId>maven-failsafe-plugin</artifactId>
-                <version>2.7.1</version>
+                <version>${mavem.failsafe.plugin.v}</version>
                 <executions>
                     <execution>
+                        <id>it</id>
                         <goals>
                             <goal>integration-test</goal>
                             <goal>verify</goal>
                         </goals>
                         <configuration>
+
                             <systemPropertyVariables>
                                 <rpcPort>${cs.rpc}</rpcPort>
                                 <storagePort>${cs.storage}</storagePort>
@@ -463,6 +492,9 @@
                                     ${project.build.directory}/autogen-jar/${cs.test.ks}-${project.version}.jar
                                 </additionalClasspathElement>
                             </additionalClasspathElements>
+                            <testClassesDirectory>
+                                ${project.build.directory}/autogen-it/
+                            </testClassesDirectory>
                         </configuration>
                     </execution>
                 </executions>
@@ -470,7 +502,7 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
-                <version>1.3.2</version>
+                <version>${exec.maven.plugin.v}</version>
                 <executions>
                     <execution>
                         <id>gen-code</id>
@@ -513,7 +545,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.2</version>
+                <version>${maven.compiler.plugin.v}</version>
                 <configuration>
                     <source>1.8</source>
                     <target>1.8</target>
@@ -538,33 +570,34 @@
                                 <exclude>**/*JCQL*.java</exclude>
                                 <exclude>**/*Options*.java</exclude>
                             </excludes>
-
                             <outputDirectory>${project.build.directory}/autogen-classes</outputDirectory>
-                            <compilerArgument>-Xlint:unchecked</compilerArgument>
+                            <compilerArgs>
+                                <arg>-Xlint</arg>
+                            </compilerArgs>
                         </configuration>
                     </execution>
-                    <!--execution>
+                    <execution>
                         <id>compile-integration-gen-test</id>
                         <phase>pre-integration-test</phase>
                         <goals>
                             <goal>testCompile</goal>
                         </goals>
                         <configuration>
-                            <testIncludes>
-                                <testInclude>${project.build.directory}/autogen/</testInclude>
-                            </testIncludes>
-                            <verbose>true</verbose>
-                            <generatedTestSourcesDirectory>${project.basedir}/src/it-gen/java/</generatedTestSourcesDirectory>
-                            <outputDirectory>${project.build.directory}/autogen-it</outputDirectory>
-                            <compilerArgument>-Xlint:unchecked</compilerArgument>
+                            <!--debug>true</debug>
+                            <debuglevel>source</debuglevel>
+                            <verbose>true</verbose-->
+                            <outputDirectory>${project.build.directory}/autogen-it/</outputDirectory>
+                            <compilerArgs>
+                                <arg>-Xlint</arg>
+                            </compilerArgs>
                         </configuration>
-                    </execution-->
+                    </execution>
                 </executions>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
-                <version>2.2.1</version>
+                <version>${maven.source.plugin.v}</version>
                 <executions>
                     <execution>
                         <id>gen-sources</id>
@@ -586,7 +619,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
-                <version>2.5</version>
+                <version>${maven.jar.plugin.v}</version>
                 <executions>
                     <execution>
                         <id>build-jar</id>

@@ -18,7 +18,8 @@ import com.trebogeer.jcql.Accounts;
 import com.trebogeer.jcql.Address;
 import com.trebogeer.jcql.Phone;
 import org.javatuples.Pair;
-
+import org.junit.Assert;
+import org.junit.Test;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -27,8 +28,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import org.junit.Test;
 
 /**
  * @author dimav
@@ -43,58 +42,46 @@ public class Smoke0IT {
 
     @Test
     public void test0() {
-        Smoke0IT.main();
-    }
-
-    public static void main(String... args) {
         try (
                 Cluster c = Cluster.builder().addContactPoint("localhost").withPort(port).build();
                 Session s = c.connect(key_space)
         ) {
+
             s.execute("INSERT INTO jcql.accounts (email, map2test) " +
                     "VALUES ('jaco@pastorius.org',{64:{alias:'bass of doom', number:'934875384'}})");
+            //  Simple count, verifying ability to operate with cluster
+            Row count = s.execute("SELECT COUNT(*) AS cnt FROM jcql.accounts").one();
 
-            Row count = s.execute("SELECT COUNT(*) AS cnt FROM jcql.tuple_test").one();
+            long cnt = count.getLong(0);
 
-            Long cnt = count.getLong(0);
-
-
-            ResultSet rs = s.execute("SELECT * FROM jcql.tuple_test");
-
-            Iterator<Row> iterator = rs.iterator();
-            while (!rs.isExhausted() & iterator.hasNext()) {
-                Row row = iterator.next();
-                Integer i = row.getInt("the_key");
-                TupleValue tv = row.getTupleValue("the1_tuple");
-                System.out.println(tv);
-            }
-
+            Assert.assertEquals("Count mismatch", cnt, 1);
             Row row = s.execute("SELECT * FROM jcql.accounts WHERE email = 'jaco@pastorius.org'").one();
-
-            Map m = row.getMap("map2test", Integer.class, Object.class);
-            //System.out.println(r.exportAsString());
-            //System.out.println(m);
 
             Accounts a = Accounts.mapper().map(row);
 
-            System.out.println(a);
+            Assert.assertEquals("Wrong entry", a.getEmail(), "jaco@pastorius.org");
+            Assert.assertEquals("Wrong count in map2test", a.getMap2test().size(), 1);
+            s.execute("TRUNCATE jcql.accounts");
+        }
+    }
 
+    @Test
+    public void test1() {
+        try (
+                Cluster c = Cluster.builder().addContactPoint("localhost").withPort(port).build();
+                Session s = c.connect(key_space)
+        ) {
 
             PreparedStatement ps = s.prepare("INSERT INTO jcql.accounts (email, map2test, settest) " +
                     "VALUES (?,?,?)");
 
             BoundStatement bs = new BoundStatement(ps);
-            ColumnDefinitions cds = bs.preparedStatement().getVariables();
-            for (ColumnDefinitions.Definition d : cds.asList()) {
-                System.out.println(d.getName());
-                System.out.println(d.getTable());
-                System.out.println(d.getType());
-            }
+
             Map<Integer, UDTValue> test = new HashMap<>();
             Phone ph = new Phone();
             ph.setAlias("fretted bass");
             ph.setNumber("6503248739");
-            UserType phoneUDT = s.getCluster().getMetadata().getKeyspace("jcql").getUserType("phone");
+            UserType phoneUDT = s.getCluster().getMetadata().getKeyspace(key_space).getUserType("phone");
             UDTValue uv = phoneUDT.newValue();
             uv.setString("alias", ph.getAlias());
             uv.setString("number", ph.getNumber());
@@ -111,53 +98,86 @@ public class Smoke0IT {
             ttv.setString(1, pair.getValue1());
 
             bs = bs.bind("marcus@miller.com", test, testset);
-            rs = s.execute(bs);
-            System.out.println(rs);
+            ResultSet rs = s.execute(bs);
+
             SimpleStatement sst = new SimpleStatement("SELECT * FROM jcql.accounts");
             sst.setFetchSize(5000);
             rs = s.execute(sst);
 
-            iterator = rs.iterator();
-            while (!rs.isExhausted() & iterator.hasNext()) {
-                row = iterator.next();
-                System.out.println(Accounts.mapper().map(row));
+            List<Accounts> res = new LinkedList<>();
+            Iterator<Row> iterator = rs.iterator();
+            while (!rs.isExhausted() & iterator.hasNext())
+
+            {
+                Row row = iterator.next();
+                res.add(Accounts.mapper().map(row));
             }
+            s.execute("TRUNCATE jcql.accounts");
+            Assert.assertEquals("Wrong accounts count", res.size(), 1);
+        }
+    }
 
-
+    @Test
+    public void test2() {
+        try (
+                Cluster c = Cluster.builder().addContactPoint("localhost").withPort(port).build();
+                Session s = c.connect(key_space)
+        ) {
             BatchStatement batch = new BatchStatement();
+
+            PreparedStatement ps = s.prepare("INSERT INTO jcql.accounts (email, map2test, settest) " +
+                    "VALUES (?,?,?)");
+
+            HashSet<String> testset = new HashSet<>();
+            testset.add("12345");
+            testset.add("536455");
+
             for (int i = 0; i < 100; i++) {
-                test = new HashMap<>();
-                ph = new Phone();
+                Map<Integer, UDTValue> test = new HashMap<>();
+                Phone ph = new Phone();
                 ph.setAlias("fodera bass" + i);
                 ph.setNumber("6503564739" + i);
-                uv = phoneUDT.newValue();
+                UserType phoneUDT = s.getCluster().getMetadata().getKeyspace(key_space).getUserType("phone");
+                UDTValue uv = phoneUDT.newValue();
                 uv.setString("alias", ph.getAlias());
                 uv.setString("number", ph.getNumber());
                 test.put(32, uv);
 
                 batch.add(ps.bind("victor@wooten.com" + i, test, testset));
                 if (i % 65534 == 0) {
-                    rs = s.execute(batch);
-                    System.out.println(rs);
+                    ResultSet rs = s.execute(batch);
+                    //System.out.println(rs);
                     batch = new BatchStatement();
                 }
             }
-            rs = s.execute(batch);
 
-            System.out.println(rs);
+            ResultSet rs = s.execute(batch);
+
+            //System.out.println(rs);
 
             rs = s.execute("SELECT * FROM jcql.accounts");
+            List<Accounts> res = new LinkedList<>();
+            Iterator<Row> iterator = rs.iterator();
+            while (!rs.isExhausted() & iterator.hasNext())
 
-            iterator = rs.iterator();
-            while (!rs.isExhausted() & iterator.hasNext()) {
-                row = iterator.next();
-                System.out.println(Accounts.mapper().map(row));
+            {
+                Row row = iterator.next();
+                res.add(Accounts.mapper().map(row));
             }
 
             s.execute("TRUNCATE jcql.accounts");
-            s.execute("TRUNCATE jcql.tuple_test");
+            Assert.assertEquals("Wrong accounts count", res.size(), 100);
+        }
 
-            //Actual tests
+    }
+
+
+    @Test
+    public void test3() {
+        try (
+                Cluster c = Cluster.builder().addContactPoint("localhost").withPort(port).build();
+                Session s = c.connect(key_space)
+        ) {
 
             Phone p = new Phone();
             p.setAlias("home");
@@ -199,16 +219,18 @@ public class Smoke0IT {
             BoundStatement bs1 = new BoundStatement(ps1);
 
             Accounts.bind().bind(account, bs1, s);
+
             s.execute(bs1);
 
             Row row0 = s.execute("SELECT * FROM jcql.accounts WHERE email = 'abccdef@asdf.gfd'").one();
             Accounts a0 = Accounts.mapper().map(row0);
-            System.out.println("Source");
-            System.out.println(account);
-            System.out.println("Target");
-            System.out.println(a0);
-            assert a0.toString().equals(account.toString());
             s.execute("TRUNCATE jcql.accounts");
+        /*System.out.println("Source");
+        System.out.println(account);
+        System.out.println("Target");
+        System.out.println(a0);*/
+            Assert.assertEquals("To String comparison failed", a0.toString(), account.toString());
         }
     }
+
 }

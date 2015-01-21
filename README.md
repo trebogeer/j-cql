@@ -6,7 +6,10 @@ cassandra schema. It is intended to be used with Cassandra 2.1+ due to support o
 Cassandra's UDTs/Tuples/Collections and an ability to introspect schema through java driver make it possible to automatically
 generate POJOs and corresponding mappers between database and java models. Properly generated java code saves development efforts
 and is less error-prone compared to hand coding. Accompanied with proper CI and deployment it can also guarantee consistency between
- database and java models at any point of application lifecycle from development to production rollout.
+database and java models at any point of application lifecycle from development to production rollout. JCQL does not rely on java 
+reflection or annotations which means all discrepancies between actual cassandra schema and what client code expects it to be will be identified
+during compilation not at runtime in the middle of the night right after production release. No need to worry about Cassandra client code
+performance implications due to use of reflection. 
 
 
 ####To try out:
