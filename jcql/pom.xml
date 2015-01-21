@@ -12,10 +12,14 @@
     <url>http://github.com/trebogeer/j-cql</url>
     <description>
         JCQL is a tool allowing to generate boilerplate java code from existing
-        cassandra schema. It is intended to be used with Cassandra 2.1+ due to support of UDTs (User Defined Types)/Tuples/Collections.
-        Cassandra's UDTs/Tuples/Collections and an ability to introspect schema through java driver make it possible to automatically
-        generate POJOs and corresponding mappers between database and java models. Properly generated java code saves development efforts
-        and is less error-prone compared to hand coding. Accompanied with proper CI and deployment it can also guarantee consistency between database and java models
+        cassandra schema. It is intended to be used with Cassandra 2.1+ due to support of UDTs (User Defined
+        Types)/Tuples/Collections.
+        Cassandra's UDTs/Tuples/Collections and an ability to introspect schema through java driver make it possible to
+        automatically
+        generate POJOs and corresponding mappers between database and java models. Properly generated java code saves
+        development efforts
+        and is less error-prone compared to hand coding. Accompanied with proper CI and deployment it can also guarantee
+        consistency between database and java models
         at any point of application lifecycle from development to production rollout.
     </description>
 
@@ -114,6 +118,9 @@
                                 <configuration>
                                     <file>${project.build.directory}/autogen-jar/${cs.test.ks}-${project.version}.jar
                                     </file>
+                                    <sources>
+                                        ${project.build.directory}/autogen-src-jar/${cs.test.ks}-${project.version}-sources.jar
+                                    </sources>
                                 </configuration>
                             </execution>
                         </executions>
@@ -218,7 +225,8 @@
                         <inherited>true</inherited>
                         <configuration>
                             <checkoutDirectory>${project.build.directory}/scmpublish</checkoutDirectory>
-                            <checkinComment>Publishing Site Docs for ${project.artifactId}:${project.version}</checkinComment>
+                            <checkinComment>Publishing Site Docs for ${project.artifactId}:${project.version}
+                            </checkinComment>
                             <!-- Plugins defaults to "target/staging" and since the distributionManagement section is a pain in the ass for site docs, this is easier -->
                             <content>${project.reporting.outputDirectory}</content>
                             <skipDeletedFiles>true</skipDeletedFiles>
@@ -384,6 +392,18 @@
                             </sources>
                         </configuration>
                     </execution>
+                    <!--execution>
+                        <id>add-it-test-source</id>
+                        <phase>pre-integration-test</phase>
+                        <goals>
+                            <goal>add-test-source</goal>
+                        </goals>
+                        <configuration>
+                            <sources>
+                                <source>${project.basedir}/src/it-gen/java/</source>
+                            </sources>
+                        </configuration>
+                    </execution-->
                 </executions>
             </plugin>
             <plugin>
@@ -438,6 +458,11 @@
                                 <ntPort>${cs.ntp}</ntPort>
                                 <testks>${cs.test.ks}</testks>
                             </systemPropertyVariables>
+                            <additionalClasspathElements>
+                                <additionalClasspathElement>
+                                    ${project.build.directory}/autogen-jar/${cs.test.ks}-${project.version}.jar
+                                </additionalClasspathElement>
+                            </additionalClasspathElements>
                         </configuration>
                     </execution>
                 </executions>
@@ -508,13 +533,52 @@
                             <goal>compile</goal>
                         </goals>
                         <configuration>
-                            <!--<verbose>true</verbose>-->
+                            <!--verbose>true</verbose-->
                             <excludes>
                                 <exclude>**/*JCQL*.java</exclude>
                                 <exclude>**/*Options*.java</exclude>
                             </excludes>
+
                             <outputDirectory>${project.build.directory}/autogen-classes</outputDirectory>
                             <compilerArgument>-Xlint:unchecked</compilerArgument>
+                        </configuration>
+                    </execution>
+                    <!--execution>
+                        <id>compile-integration-gen-test</id>
+                        <phase>pre-integration-test</phase>
+                        <goals>
+                            <goal>testCompile</goal>
+                        </goals>
+                        <configuration>
+                            <testIncludes>
+                                <testInclude>${project.build.directory}/autogen/</testInclude>
+                            </testIncludes>
+                            <verbose>true</verbose>
+                            <generatedTestSourcesDirectory>${project.basedir}/src/it-gen/java/</generatedTestSourcesDirectory>
+                            <outputDirectory>${project.build.directory}/autogen-it</outputDirectory>
+                            <compilerArgument>-Xlint:unchecked</compilerArgument>
+                        </configuration>
+                    </execution-->
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>2.2.1</version>
+                <executions>
+                    <execution>
+                        <id>gen-sources</id>
+                        <phase>pre-integration-test</phase>
+                        <goals>
+                            <goal>jar-no-fork</goal>
+                        </goals>
+                        <configuration>
+                            <excludes>
+                                <exclude>**/*JCQL*.java</exclude>
+                                <exclude>**/*Options*.java</exclude>
+                            </excludes>
+                            <outputDirectory>${project.build.directory}/autogen-src-jar/</outputDirectory>
+                            <finalName>${cs.test.ks}-${project.version}</finalName>
                         </configuration>
                     </execution>
                 </executions>

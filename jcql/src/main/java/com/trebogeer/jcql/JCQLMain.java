@@ -419,7 +419,7 @@ public class JCQLMain {
                         | JMod.STATIC | JMod.PRIVATE, clazz.name() + "BindMapper")
                 ._implements(bindMapperNarrowed);
         JVar bindSt = clazz.field(JMod.PRIVATE | JMod.STATIC | JMod.FINAL, bindImpl, "bind", JExpr._new(bindImpl));
-        clazz.method(PUBLIC | JMod.STATIC, bindImpl, "bind").body()._return(bindSt);
+        clazz.method(PUBLIC | JMod.STATIC, binder.narrow(clazz), "bind").body()._return(bindSt);
 
         JMethod bind = bindImpl.method(PUBLIC, model.VOID, "bind");
         JVar dataBind = bind.param(clazz, "data");
@@ -507,8 +507,13 @@ public class JCQLMain {
         for (Pair<String, DataType> field : fields) {
             DataType dt = field.getValue1();
             String fname = field.getValue0();
-            JExpression arg2 = processMapField(dt, dataUdt, fname, session, body);
-            body.add(udt.invoke(setDataMethod(dt.getName())).arg(lit(fname)).arg(arg2));
+            JVar fv = body.decl(getType(dt, model, cfg), camelize(fname, true) + "Val", dataUdt.invoke("get" + camelize(fname)));
+            JConditional ifNull = body._if(fv.ne(JExpr._null()));
+            JBlock ifNullBody = ifNull._then();
+            JExpression arg2 = processMapField(dt, dataUdt, fname, session, ifNullBody);
+            ifNullBody.add(udt.invoke(setDataMethod(dt.getName())).arg(lit(fname)).arg(arg2));
+            JBlock elseBody = ifNull._else();
+            elseBody.add(udt.invoke("setToNull").arg(fname));
 
         }
 
@@ -727,9 +732,11 @@ public class JCQLMain {
         for (Pair<String, DataType> field : fields) {
             String name = field.getValue0();
             DataType type = field.getValue1();
+            JBlock ifNotNullBody = body._if(JOp.not(param.invoke("isNull")
+                    .arg(lit(name))))._then();
             if (type.isCollection()) {
-                JBlock jb = body._if(JOp.not(param.invoke("isNull")
-                        .arg(lit(name))))._then();
+                /*JBlock jb = jb._if(JOp.not(param.invoke("isNull")
+                        .arg(lit(name))))._then();*/
                 List<DataType> typeArgs = type.getTypeArguments();
                 JExpression setterExpression;
 
@@ -748,11 +755,11 @@ public class JCQLMain {
                             JClass collectionClass = model.ref(
                                     type.asJavaClass().isAssignableFrom(List.class) ?
                                             LinkedList.class : HashSet.class).narrow(cl);
-                            JVar collection = jb.decl(collectionClass, camelize(name, true), JExpr._new(collectionClass));
+                            JVar collection = ifNotNullBody.decl(collectionClass, camelize(name, true), JExpr._new(collectionClass));
                             JClass udtValueCollection = model.ref(type.asJavaClass()).narrow(UDTValue.class);
-                            JVar udtCollection = jb.decl(udtValueCollection, camelize(name, true) + "Source", setterExpression);
+                            JVar udtCollection = ifNotNullBody.decl(udtValueCollection, camelize(name, true) + "Source", setterExpression);
 
-                            JForEach forEach = jb.forEach(model.ref(UDTValue.class), "entry", udtCollection);
+                            JForEach forEach = ifNotNullBody.forEach(model.ref(UDTValue.class), "entry", udtCollection);
                             JVar var = forEach.var();
                             JBlock forEachBody = forEach.body();
                             forEachBody.add(collection.invoke("add").arg(cl.staticInvoke("mapper").invoke("map").arg(var)));
@@ -770,19 +777,19 @@ public class JCQLMain {
                     JClass argc1 = getType(arg1, model, cfg);
                     if (arg0.isFrozen() || arg1.isFrozen()) {
 
-                        JVar hashmap = jb.decl(model.ref(Map.class).narrow(argc0).narrow(argc1)
+                        JVar hashmap = ifNotNullBody.decl(model.ref(Map.class).narrow(argc0).narrow(argc1)
                                 , camelize(name, true), JExpr._new(model.ref(HashMap.class)
                                 .narrow(argc0).narrow(argc1)));
                         JExpression arg0csClass = model.ref(arg0.asJavaClass()).dotclass();
                         JExpression arg1csClass = model.ref(arg1.asJavaClass()).dotclass();
 
-                        JVar frozen = jb.decl(model.ref(Map.class).narrow(arg0.asJavaClass(),
+                        JVar frozen = ifNotNullBody.decl(model.ref(Map.class).narrow(arg0.asJavaClass(),
                                         arg1.asJavaClass()), camelize(name, true) + "Source",
                                 param.invoke(getDataMethod(type.getName()))
                                         .arg(name)
                                         .arg(arg0csClass)
                                         .arg(arg1csClass));
-                        JForEach forEach = jb.forEach(model.ref(Map.Entry.class).narrow(arg0.asJavaClass(),
+                        JForEach forEach = ifNotNullBody.forEach(model.ref(Map.Entry.class).narrow(arg0.asJavaClass(),
                                 arg1.asJavaClass()), "entry", frozen.invoke("entrySet"));
                         JVar var = forEach.var();
                         JBlock forEachBody = forEach.body();
@@ -806,22 +813,21 @@ public class JCQLMain {
                 }
 
 
-                jb.add(bean.invoke("set" + camelize(name))
+                ifNotNullBody.add(bean.invoke("set" + camelize(name))
                         .arg(setterExpression));
             } else if (type.isFrozen()) {
                 if (type instanceof UserType) {
                     UserType ut = (UserType) type;
-                    body.add(bean.invoke("set" + camelize(name))
+                    ifNotNullBody.add(bean.invoke("set" + camelize(name))
                             .arg(mapUDT(name, ut, param, type)));
                 } else if (type instanceof TupleType) {
                     TupleType tt = (TupleType) type;
-                    JBlock cond = body._if(JOp.not(param.invoke("isNull")
-                            .arg(lit(name))))._then();
-                    mapTuple(tt, cond, name, param, bean, type);
+
+                    mapTuple(tt, ifNotNullBody, name, param, bean, type);
 
                 }
             } else {
-                body.add(bean.invoke("set" + camelize(name))
+                ifNotNullBody.add(bean.invoke("set" + camelize(name))
                         .arg(param.invoke(getDataMethod(type.getName())).arg(name)));
             }
         }
