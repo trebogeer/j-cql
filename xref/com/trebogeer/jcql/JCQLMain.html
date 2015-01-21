@@ -427,7 +427,7 @@
 <a class="jxr_linenumber" name="L419" href="#L419">419</a>                         | JMod.STATIC | JMod.PRIVATE, clazz.name() + <span class="jxr_string">"BindMapper"</span>)
 <a class="jxr_linenumber" name="L420" href="#L420">420</a>                 ._<strong class="jxr_keyword">implements</strong>(bindMapperNarrowed);
 <a class="jxr_linenumber" name="L421" href="#L421">421</a>         JVar bindSt = clazz.field(JMod.PRIVATE | JMod.STATIC | JMod.FINAL, bindImpl, <span class="jxr_string">"bind"</span>, JExpr._<strong class="jxr_keyword">new</strong>(bindImpl));
-<a class="jxr_linenumber" name="L422" href="#L422">422</a>         clazz.method(PUBLIC | JMod.STATIC, bindImpl, <span class="jxr_string">"bind"</span>).body()._<strong class="jxr_keyword">return</strong>(bindSt);
+<a class="jxr_linenumber" name="L422" href="#L422">422</a>         clazz.method(PUBLIC | JMod.STATIC, binder.narrow(clazz), <span class="jxr_string">"bind"</span>).body()._<strong class="jxr_keyword">return</strong>(bindSt);
 <a class="jxr_linenumber" name="L423" href="#L423">423</a> 
 <a class="jxr_linenumber" name="L424" href="#L424">424</a>         JMethod bind = bindImpl.method(PUBLIC, model.VOID, <span class="jxr_string">"bind"</span>);
 <a class="jxr_linenumber" name="L425" href="#L425">425</a>         JVar dataBind = bind.param(clazz, <span class="jxr_string">"data"</span>);
@@ -515,428 +515,434 @@
 <a class="jxr_linenumber" name="L507" href="#L507">507</a>         <strong class="jxr_keyword">for</strong> (Pair&lt;String, DataType&gt; field : fields) {
 <a class="jxr_linenumber" name="L508" href="#L508">508</a>             DataType dt = field.getValue1();
 <a class="jxr_linenumber" name="L509" href="#L509">509</a>             String fname = field.getValue0();
-<a class="jxr_linenumber" name="L510" href="#L510">510</a>             JExpression arg2 = processMapField(dt, dataUdt, fname, session, body);
-<a class="jxr_linenumber" name="L511" href="#L511">511</a>             body.add(udt.invoke(setDataMethod(dt.getName())).arg(lit(fname)).arg(arg2));
-<a class="jxr_linenumber" name="L512" href="#L512">512</a> 
-<a class="jxr_linenumber" name="L513" href="#L513">513</a>         }
-<a class="jxr_linenumber" name="L514" href="#L514">514</a> 
-<a class="jxr_linenumber" name="L515" href="#L515">515</a>         body._<strong class="jxr_keyword">return</strong>(udt);
-<a class="jxr_linenumber" name="L516" href="#L516">516</a> 
-<a class="jxr_linenumber" name="L517" href="#L517">517</a>     }
-<a class="jxr_linenumber" name="L518" href="#L518">518</a> 
-<a class="jxr_linenumber" name="L519" href="#L519">519</a>     <strong class="jxr_keyword">private</strong> JExpression processMapField(DataType dt, JVar data, String name, JVar session, JBlock body) {
-<a class="jxr_linenumber" name="L520" href="#L520">520</a> 
-<a class="jxr_linenumber" name="L521" href="#L521">521</a>         String fname = name;
-<a class="jxr_linenumber" name="L522" href="#L522">522</a>         String fnamec = camelize(fname);
-<a class="jxr_linenumber" name="L523" href="#L523">523</a>         String fnamecl = camelize(fname, <strong class="jxr_keyword">true</strong>);
-<a class="jxr_linenumber" name="L524" href="#L524">524</a> 
-<a class="jxr_linenumber" name="L525" href="#L525">525</a>         <strong class="jxr_keyword">if</strong> (dt.isFrozen()) {
-<a class="jxr_linenumber" name="L526" href="#L526">526</a> 
-<a class="jxr_linenumber" name="L527" href="#L527">527</a>             <strong class="jxr_keyword">if</strong> (dt instanceof UserType) {
-<a class="jxr_linenumber" name="L528" href="#L528">528</a>                 <strong class="jxr_keyword">return</strong> model.ref(getFullClassName(cfg.jpackage, ((UserType) dt).getTypeName()))
-<a class="jxr_linenumber" name="L529" href="#L529">529</a>                         .staticInvoke(<span class="jxr_string">"udtMapper"</span>)
-<a class="jxr_linenumber" name="L530" href="#L530">530</a>                         .invoke(<span class="jxr_string">"toUDT"</span>).arg(data.invoke(<span class="jxr_string">"get"</span> + fnamec)).arg(session);
-<a class="jxr_linenumber" name="L531" href="#L531">531</a>             } <strong class="jxr_keyword">else</strong> <strong class="jxr_keyword">if</strong> (dt instanceof TupleType) {
-<a class="jxr_linenumber" name="L532" href="#L532">532</a>                 Pair&lt;JExpression, JExpression&gt; refVal = processTuple(dt, data, fnamec ,body, session);
-<a class="jxr_linenumber" name="L533" href="#L533">533</a>                 <strong class="jxr_keyword">return</strong> refVal.getValue1();
-<a class="jxr_linenumber" name="L534" href="#L534">534</a>             }
-<a class="jxr_linenumber" name="L535" href="#L535">535</a> 
-<a class="jxr_linenumber" name="L536" href="#L536">536</a>         } <strong class="jxr_keyword">else</strong> <strong class="jxr_keyword">if</strong> (dt.isCollection()) {
-<a class="jxr_linenumber" name="L537" href="#L537">537</a>             List&lt;DataType&gt; argTypes = dt.getTypeArguments();
-<a class="jxr_linenumber" name="L538" href="#L538">538</a>             <strong class="jxr_keyword">if</strong> (argTypes != <strong class="jxr_keyword">null</strong>) {
-<a class="jxr_linenumber" name="L539" href="#L539">539</a>                 <strong class="jxr_keyword">if</strong> (argTypes.size() == 1) {
-<a class="jxr_linenumber" name="L540" href="#L540">540</a>                     DataType argDt = argTypes.get(0);
-<a class="jxr_linenumber" name="L541" href="#L541">541</a>                     <strong class="jxr_keyword">if</strong> (argDt.isCollection()) {
-<a class="jxr_linenumber" name="L542" href="#L542">542</a>                         <em class="jxr_comment">// TODO cassandra does not support embedded collections yet but might support in future</em>
-<a class="jxr_linenumber" name="L543" href="#L543">543</a>                         <strong class="jxr_keyword">throw</strong> <strong class="jxr_keyword">new</strong> UnsupportedOperationException(<span class="jxr_string">"Collections of collections are not"</span> +
-<a class="jxr_linenumber" name="L544" href="#L544">544</a>                                 <span class="jxr_string">" supported within UDTs and probably by cassandra 2.1."</span>);
-<a class="jxr_linenumber" name="L545" href="#L545">545</a>                     } <strong class="jxr_keyword">else</strong> <strong class="jxr_keyword">if</strong> (argDt.isFrozen()) {
-<a class="jxr_linenumber" name="L546" href="#L546">546</a>                         <strong class="jxr_keyword">if</strong> (argDt instanceof UserType) {
-<a class="jxr_linenumber" name="L547" href="#L547">547</a>                             UserType ut = (UserType) argDt;
-<a class="jxr_linenumber" name="L548" href="#L548">548</a>                             String utname = ut.getTypeName();
-<a class="jxr_linenumber" name="L549" href="#L549">549</a>                             String utnamec = camelize(utname);
-<a class="jxr_linenumber" name="L550" href="#L550">550</a>                             JClass sourceCollectionGeneric = model.ref(getFullClassName(cfg.jpackage, utnamec));
-<a class="jxr_linenumber" name="L551" href="#L551">551</a>                             JClass sourceCollectionClass = model.ref(dt.asJavaClass())
-<a class="jxr_linenumber" name="L552" href="#L552">552</a>                                     .narrow(sourceCollectionGeneric);
-<a class="jxr_linenumber" name="L553" href="#L553">553</a> 
-<a class="jxr_linenumber" name="L554" href="#L554">554</a>                             JVar source = body.decl(sourceCollectionClass, fnamecl + <span class="jxr_string">"Source"</span>,
-<a class="jxr_linenumber" name="L555" href="#L555">555</a>                                     data.invoke(<span class="jxr_string">"get"</span> + camelize(fname)));
-<a class="jxr_linenumber" name="L556" href="#L556">556</a>                             JVar target = body.decl(model.ref(dt.asJavaClass()).narrow(UDTValue.<strong class="jxr_keyword">class</strong>),
-<a class="jxr_linenumber" name="L557" href="#L557">557</a>                                     fnamecl + <span class="jxr_string">"Target"</span>,
-<a class="jxr_linenumber" name="L558" href="#L558">558</a>                                     JExpr._<strong class="jxr_keyword">new</strong>(dt.asJavaClass().isAssignableFrom(Set.<strong class="jxr_keyword">class</strong>)
-<a class="jxr_linenumber" name="L559" href="#L559">559</a>                                             ? model.ref(HashSet.<strong class="jxr_keyword">class</strong>).narrow(UDTValue.<strong class="jxr_keyword">class</strong>)
-<a class="jxr_linenumber" name="L560" href="#L560">560</a>                                             : model.ref(LinkedList.<strong class="jxr_keyword">class</strong>).narrow(UDTValue.<strong class="jxr_keyword">class</strong>)));
-<a class="jxr_linenumber" name="L561" href="#L561">561</a>                             JForEach forEach = body.forEach(sourceCollectionGeneric, <span class="jxr_string">"entry"</span>, source);
-<a class="jxr_linenumber" name="L562" href="#L562">562</a>                             JVar entry = forEach.<strong class="jxr_keyword">var</strong>();
-<a class="jxr_linenumber" name="L563" href="#L563">563</a>                             JBlock forEachBody = forEach.body();
-<a class="jxr_linenumber" name="L564" href="#L564">564</a> 
-<a class="jxr_linenumber" name="L565" href="#L565">565</a>                             JInvocation convertToUDT = sourceCollectionGeneric
-<a class="jxr_linenumber" name="L566" href="#L566">566</a>                                     .staticInvoke(<span class="jxr_string">"udtMapper"</span>).invoke(<span class="jxr_string">"toUDT"</span>).arg(entry).arg(session);
-<a class="jxr_linenumber" name="L567" href="#L567">567</a>                             forEachBody.add(target.invoke(<span class="jxr_string">"add"</span>).arg(convertToUDT));
-<a class="jxr_linenumber" name="L568" href="#L568">568</a>                             <strong class="jxr_keyword">return</strong> target;
-<a class="jxr_linenumber" name="L569" href="#L569">569</a>                         } <strong class="jxr_keyword">else</strong> <strong class="jxr_keyword">if</strong> (argDt instanceof TupleType) {
-<a class="jxr_linenumber" name="L570" href="#L570">570</a>                             <em class="jxr_comment">// TODO support tuples</em>
-<a class="jxr_linenumber" name="L571" href="#L571">571</a>                             <strong class="jxr_keyword">throw</strong> <strong class="jxr_keyword">new</strong> UnsupportedOperationException(<span class="jxr_string">"Collections of tuples within "</span> +
-<a class="jxr_linenumber" name="L572" href="#L572">572</a>                                     <span class="jxr_string">"UDT are not yet supported."</span>);
-<a class="jxr_linenumber" name="L573" href="#L573">573</a>                         }
-<a class="jxr_linenumber" name="L574" href="#L574">574</a>                     }
-<a class="jxr_linenumber" name="L575" href="#L575">575</a>                 } <strong class="jxr_keyword">else</strong> <strong class="jxr_keyword">if</strong> (argTypes.size() == 2) {
-<a class="jxr_linenumber" name="L576" href="#L576">576</a>                     DataType argDt0 = argTypes.get(0);
-<a class="jxr_linenumber" name="L577" href="#L577">577</a>                     DataType argDt1 = argTypes.get(1);
-<a class="jxr_linenumber" name="L578" href="#L578">578</a>                     JClass argc0 = getType(argDt0, model, cfg);
-<a class="jxr_linenumber" name="L579" href="#L579">579</a>                     JClass argc1 = getType(argDt1, model, cfg);
-<a class="jxr_linenumber" name="L580" href="#L580">580</a>                     <strong class="jxr_keyword">if</strong> (argDt0.isCollection() || argDt1.isCollection()) {
-<a class="jxr_linenumber" name="L581" href="#L581">581</a>                         <em class="jxr_comment">// TODO cassandra does not support embedded collections yet but might support in future</em>
-<a class="jxr_linenumber" name="L582" href="#L582">582</a>                         <strong class="jxr_keyword">throw</strong> <strong class="jxr_keyword">new</strong> UnsupportedOperationException(<span class="jxr_string">"Collections of collections are not"</span> +
-<a class="jxr_linenumber" name="L583" href="#L583">583</a>                                 <span class="jxr_string">" supported within UDTs and probably by cassandra 2.1."</span>);
-<a class="jxr_linenumber" name="L584" href="#L584">584</a>                     } <strong class="jxr_keyword">else</strong> <strong class="jxr_keyword">if</strong> (argDt0.isFrozen() || argDt1.isFrozen()) {
-<a class="jxr_linenumber" name="L585" href="#L585">585</a>                         <strong class="jxr_keyword">if</strong> (argDt0 instanceof TupleType || argDt1 instanceof TupleType) {
-<a class="jxr_linenumber" name="L586" href="#L586">586</a>                             <strong class="jxr_keyword">throw</strong> <strong class="jxr_keyword">new</strong> UnsupportedOperationException(<span class="jxr_string">"Collections of tuples are not yet"</span> +
-<a class="jxr_linenumber" name="L587" href="#L587">587</a>                                     <span class="jxr_string">" supported within UDTs."</span>);
-<a class="jxr_linenumber" name="L588" href="#L588">588</a>                         }
-<a class="jxr_linenumber" name="L589" href="#L589">589</a> 
-<a class="jxr_linenumber" name="L590" href="#L590">590</a>                         JVar source = body.decl(model.ref(Map.<strong class="jxr_keyword">class</strong>).narrow(argc0, argc1),
-<a class="jxr_linenumber" name="L591" href="#L591">591</a>                                 fnamecl + <span class="jxr_string">"Source"</span>, data.invoke(<span class="jxr_string">"get"</span> + camelize(fname)));
-<a class="jxr_linenumber" name="L592" href="#L592">592</a>                         JVar target = body.decl(model.ref(Map.<strong class="jxr_keyword">class</strong>).narrow(argDt0.asJavaClass(), argDt1.asJavaClass()),
-<a class="jxr_linenumber" name="L593" href="#L593">593</a>                                 fnamecl + <span class="jxr_string">"Target"</span>,
-<a class="jxr_linenumber" name="L594" href="#L594">594</a>                                 JExpr._<strong class="jxr_keyword">new</strong>(model.ref(HashMap.<strong class="jxr_keyword">class</strong>).narrow(argDt0.asJavaClass(), argDt1.asJavaClass())));
-<a class="jxr_linenumber" name="L595" href="#L595">595</a>                         JClass entryClass = model.ref(Map.Entry.<strong class="jxr_keyword">class</strong>).narrow(argc0, argc1);
-<a class="jxr_linenumber" name="L596" href="#L596">596</a>                         JForEach forEach = body.forEach(entryClass, <span class="jxr_string">"entry"</span>, source.invoke(<span class="jxr_string">"entrySet"</span>));
-<a class="jxr_linenumber" name="L597" href="#L597">597</a>                         JVar entry = forEach.<strong class="jxr_keyword">var</strong>();
-<a class="jxr_linenumber" name="L598" href="#L598">598</a>                         JExpression k = entry.invoke(<span class="jxr_string">"getKey"</span>);
-<a class="jxr_linenumber" name="L599" href="#L599">599</a>                         JExpression v = entry.invoke(<span class="jxr_string">"getValue"</span>);
-<a class="jxr_linenumber" name="L600" href="#L600">600</a>                         JBlock forEachBody = forEach.body();
-<a class="jxr_linenumber" name="L601" href="#L601">601</a>                         JExpression key = argDt0.isFrozen()
-<a class="jxr_linenumber" name="L602" href="#L602">602</a>                                 ? argc0.staticInvoke(<span class="jxr_string">"udtMapper"</span>).invoke(<span class="jxr_string">"toUDT"</span>).arg(k).arg(session)
-<a class="jxr_linenumber" name="L603" href="#L603">603</a>                                 : k;
-<a class="jxr_linenumber" name="L604" href="#L604">604</a>                         JExpression value = argDt1.isFrozen()
-<a class="jxr_linenumber" name="L605" href="#L605">605</a>                                 ? argc1.staticInvoke(<span class="jxr_string">"udtMapper"</span>).invoke(<span class="jxr_string">"toUDT"</span>).arg(v).arg(session)
-<a class="jxr_linenumber" name="L606" href="#L606">606</a>                                 : v;
-<a class="jxr_linenumber" name="L607" href="#L607">607</a>                         forEachBody.add(target.invoke(<span class="jxr_string">"put"</span>).arg(key).arg(value));
-<a class="jxr_linenumber" name="L608" href="#L608">608</a>                         <strong class="jxr_keyword">return</strong> target;
-<a class="jxr_linenumber" name="L609" href="#L609">609</a>                     }
-<a class="jxr_linenumber" name="L610" href="#L610">610</a>                 }
-<a class="jxr_linenumber" name="L611" href="#L611">611</a> 
-<a class="jxr_linenumber" name="L612" href="#L612">612</a>             }
-<a class="jxr_linenumber" name="L613" href="#L613">613</a>         }
-<a class="jxr_linenumber" name="L614" href="#L614">614</a>         <strong class="jxr_keyword">return</strong> data.invoke(<span class="jxr_string">"get"</span> + camelize(fname));
-<a class="jxr_linenumber" name="L615" href="#L615">615</a>     }
+<a class="jxr_linenumber" name="L510" href="#L510">510</a>             JVar fv = body.decl(getType(dt, model, cfg), camelize(fname, <strong class="jxr_keyword">true</strong>) + <span class="jxr_string">"Val"</span>, dataUdt.invoke(<span class="jxr_string">"get"</span> + camelize(fname)));
+<a class="jxr_linenumber" name="L511" href="#L511">511</a>             JConditional ifNull = body._<strong class="jxr_keyword">if</strong>(fv.ne(JExpr._<strong class="jxr_keyword">null</strong>()));
+<a class="jxr_linenumber" name="L512" href="#L512">512</a>             JBlock ifNullBody = ifNull._then();
+<a class="jxr_linenumber" name="L513" href="#L513">513</a>             JExpression arg2 = processMapField(dt, dataUdt, fname, session, ifNullBody);
+<a class="jxr_linenumber" name="L514" href="#L514">514</a>             ifNullBody.add(udt.invoke(setDataMethod(dt.getName())).arg(lit(fname)).arg(arg2));
+<a class="jxr_linenumber" name="L515" href="#L515">515</a>             JBlock elseBody = ifNull._<strong class="jxr_keyword">else</strong>();
+<a class="jxr_linenumber" name="L516" href="#L516">516</a>             elseBody.add(udt.invoke(<span class="jxr_string">"setToNull"</span>).arg(fname));
+<a class="jxr_linenumber" name="L517" href="#L517">517</a> 
+<a class="jxr_linenumber" name="L518" href="#L518">518</a>         }
+<a class="jxr_linenumber" name="L519" href="#L519">519</a> 
+<a class="jxr_linenumber" name="L520" href="#L520">520</a>         body._<strong class="jxr_keyword">return</strong>(udt);
+<a class="jxr_linenumber" name="L521" href="#L521">521</a> 
+<a class="jxr_linenumber" name="L522" href="#L522">522</a>     }
+<a class="jxr_linenumber" name="L523" href="#L523">523</a> 
+<a class="jxr_linenumber" name="L524" href="#L524">524</a>     <strong class="jxr_keyword">private</strong> JExpression processMapField(DataType dt, JVar data, String name, JVar session, JBlock body) {
+<a class="jxr_linenumber" name="L525" href="#L525">525</a> 
+<a class="jxr_linenumber" name="L526" href="#L526">526</a>         String fname = name;
+<a class="jxr_linenumber" name="L527" href="#L527">527</a>         String fnamec = camelize(fname);
+<a class="jxr_linenumber" name="L528" href="#L528">528</a>         String fnamecl = camelize(fname, <strong class="jxr_keyword">true</strong>);
+<a class="jxr_linenumber" name="L529" href="#L529">529</a> 
+<a class="jxr_linenumber" name="L530" href="#L530">530</a>         <strong class="jxr_keyword">if</strong> (dt.isFrozen()) {
+<a class="jxr_linenumber" name="L531" href="#L531">531</a> 
+<a class="jxr_linenumber" name="L532" href="#L532">532</a>             <strong class="jxr_keyword">if</strong> (dt instanceof UserType) {
+<a class="jxr_linenumber" name="L533" href="#L533">533</a>                 <strong class="jxr_keyword">return</strong> model.ref(getFullClassName(cfg.jpackage, ((UserType) dt).getTypeName()))
+<a class="jxr_linenumber" name="L534" href="#L534">534</a>                         .staticInvoke(<span class="jxr_string">"udtMapper"</span>)
+<a class="jxr_linenumber" name="L535" href="#L535">535</a>                         .invoke(<span class="jxr_string">"toUDT"</span>).arg(data.invoke(<span class="jxr_string">"get"</span> + fnamec)).arg(session);
+<a class="jxr_linenumber" name="L536" href="#L536">536</a>             } <strong class="jxr_keyword">else</strong> <strong class="jxr_keyword">if</strong> (dt instanceof TupleType) {
+<a class="jxr_linenumber" name="L537" href="#L537">537</a>                 Pair&lt;JExpression, JExpression&gt; refVal = processTuple(dt, data, fnamec ,body, session);
+<a class="jxr_linenumber" name="L538" href="#L538">538</a>                 <strong class="jxr_keyword">return</strong> refVal.getValue1();
+<a class="jxr_linenumber" name="L539" href="#L539">539</a>             }
+<a class="jxr_linenumber" name="L540" href="#L540">540</a> 
+<a class="jxr_linenumber" name="L541" href="#L541">541</a>         } <strong class="jxr_keyword">else</strong> <strong class="jxr_keyword">if</strong> (dt.isCollection()) {
+<a class="jxr_linenumber" name="L542" href="#L542">542</a>             List&lt;DataType&gt; argTypes = dt.getTypeArguments();
+<a class="jxr_linenumber" name="L543" href="#L543">543</a>             <strong class="jxr_keyword">if</strong> (argTypes != <strong class="jxr_keyword">null</strong>) {
+<a class="jxr_linenumber" name="L544" href="#L544">544</a>                 <strong class="jxr_keyword">if</strong> (argTypes.size() == 1) {
+<a class="jxr_linenumber" name="L545" href="#L545">545</a>                     DataType argDt = argTypes.get(0);
+<a class="jxr_linenumber" name="L546" href="#L546">546</a>                     <strong class="jxr_keyword">if</strong> (argDt.isCollection()) {
+<a class="jxr_linenumber" name="L547" href="#L547">547</a>                         <em class="jxr_comment">// TODO cassandra does not support embedded collections yet but might support in future</em>
+<a class="jxr_linenumber" name="L548" href="#L548">548</a>                         <strong class="jxr_keyword">throw</strong> <strong class="jxr_keyword">new</strong> UnsupportedOperationException(<span class="jxr_string">"Collections of collections are not"</span> +
+<a class="jxr_linenumber" name="L549" href="#L549">549</a>                                 <span class="jxr_string">" supported within UDTs and probably by cassandra 2.1."</span>);
+<a class="jxr_linenumber" name="L550" href="#L550">550</a>                     } <strong class="jxr_keyword">else</strong> <strong class="jxr_keyword">if</strong> (argDt.isFrozen()) {
+<a class="jxr_linenumber" name="L551" href="#L551">551</a>                         <strong class="jxr_keyword">if</strong> (argDt instanceof UserType) {
+<a class="jxr_linenumber" name="L552" href="#L552">552</a>                             UserType ut = (UserType) argDt;
+<a class="jxr_linenumber" name="L553" href="#L553">553</a>                             String utname = ut.getTypeName();
+<a class="jxr_linenumber" name="L554" href="#L554">554</a>                             String utnamec = camelize(utname);
+<a class="jxr_linenumber" name="L555" href="#L555">555</a>                             JClass sourceCollectionGeneric = model.ref(getFullClassName(cfg.jpackage, utnamec));
+<a class="jxr_linenumber" name="L556" href="#L556">556</a>                             JClass sourceCollectionClass = model.ref(dt.asJavaClass())
+<a class="jxr_linenumber" name="L557" href="#L557">557</a>                                     .narrow(sourceCollectionGeneric);
+<a class="jxr_linenumber" name="L558" href="#L558">558</a> 
+<a class="jxr_linenumber" name="L559" href="#L559">559</a>                             JVar source = body.decl(sourceCollectionClass, fnamecl + <span class="jxr_string">"Source"</span>,
+<a class="jxr_linenumber" name="L560" href="#L560">560</a>                                     data.invoke(<span class="jxr_string">"get"</span> + camelize(fname)));
+<a class="jxr_linenumber" name="L561" href="#L561">561</a>                             JVar target = body.decl(model.ref(dt.asJavaClass()).narrow(UDTValue.<strong class="jxr_keyword">class</strong>),
+<a class="jxr_linenumber" name="L562" href="#L562">562</a>                                     fnamecl + <span class="jxr_string">"Target"</span>,
+<a class="jxr_linenumber" name="L563" href="#L563">563</a>                                     JExpr._<strong class="jxr_keyword">new</strong>(dt.asJavaClass().isAssignableFrom(Set.<strong class="jxr_keyword">class</strong>)
+<a class="jxr_linenumber" name="L564" href="#L564">564</a>                                             ? model.ref(HashSet.<strong class="jxr_keyword">class</strong>).narrow(UDTValue.<strong class="jxr_keyword">class</strong>)
+<a class="jxr_linenumber" name="L565" href="#L565">565</a>                                             : model.ref(LinkedList.<strong class="jxr_keyword">class</strong>).narrow(UDTValue.<strong class="jxr_keyword">class</strong>)));
+<a class="jxr_linenumber" name="L566" href="#L566">566</a>                             JForEach forEach = body.forEach(sourceCollectionGeneric, <span class="jxr_string">"entry"</span>, source);
+<a class="jxr_linenumber" name="L567" href="#L567">567</a>                             JVar entry = forEach.<strong class="jxr_keyword">var</strong>();
+<a class="jxr_linenumber" name="L568" href="#L568">568</a>                             JBlock forEachBody = forEach.body();
+<a class="jxr_linenumber" name="L569" href="#L569">569</a> 
+<a class="jxr_linenumber" name="L570" href="#L570">570</a>                             JInvocation convertToUDT = sourceCollectionGeneric
+<a class="jxr_linenumber" name="L571" href="#L571">571</a>                                     .staticInvoke(<span class="jxr_string">"udtMapper"</span>).invoke(<span class="jxr_string">"toUDT"</span>).arg(entry).arg(session);
+<a class="jxr_linenumber" name="L572" href="#L572">572</a>                             forEachBody.add(target.invoke(<span class="jxr_string">"add"</span>).arg(convertToUDT));
+<a class="jxr_linenumber" name="L573" href="#L573">573</a>                             <strong class="jxr_keyword">return</strong> target;
+<a class="jxr_linenumber" name="L574" href="#L574">574</a>                         } <strong class="jxr_keyword">else</strong> <strong class="jxr_keyword">if</strong> (argDt instanceof TupleType) {
+<a class="jxr_linenumber" name="L575" href="#L575">575</a>                             <em class="jxr_comment">// TODO support tuples</em>
+<a class="jxr_linenumber" name="L576" href="#L576">576</a>                             <strong class="jxr_keyword">throw</strong> <strong class="jxr_keyword">new</strong> UnsupportedOperationException(<span class="jxr_string">"Collections of tuples within "</span> +
+<a class="jxr_linenumber" name="L577" href="#L577">577</a>                                     <span class="jxr_string">"UDT are not yet supported."</span>);
+<a class="jxr_linenumber" name="L578" href="#L578">578</a>                         }
+<a class="jxr_linenumber" name="L579" href="#L579">579</a>                     }
+<a class="jxr_linenumber" name="L580" href="#L580">580</a>                 } <strong class="jxr_keyword">else</strong> <strong class="jxr_keyword">if</strong> (argTypes.size() == 2) {
+<a class="jxr_linenumber" name="L581" href="#L581">581</a>                     DataType argDt0 = argTypes.get(0);
+<a class="jxr_linenumber" name="L582" href="#L582">582</a>                     DataType argDt1 = argTypes.get(1);
+<a class="jxr_linenumber" name="L583" href="#L583">583</a>                     JClass argc0 = getType(argDt0, model, cfg);
+<a class="jxr_linenumber" name="L584" href="#L584">584</a>                     JClass argc1 = getType(argDt1, model, cfg);
+<a class="jxr_linenumber" name="L585" href="#L585">585</a>                     <strong class="jxr_keyword">if</strong> (argDt0.isCollection() || argDt1.isCollection()) {
+<a class="jxr_linenumber" name="L586" href="#L586">586</a>                         <em class="jxr_comment">// TODO cassandra does not support embedded collections yet but might support in future</em>
+<a class="jxr_linenumber" name="L587" href="#L587">587</a>                         <strong class="jxr_keyword">throw</strong> <strong class="jxr_keyword">new</strong> UnsupportedOperationException(<span class="jxr_string">"Collections of collections are not"</span> +
+<a class="jxr_linenumber" name="L588" href="#L588">588</a>                                 <span class="jxr_string">" supported within UDTs and probably by cassandra 2.1."</span>);
+<a class="jxr_linenumber" name="L589" href="#L589">589</a>                     } <strong class="jxr_keyword">else</strong> <strong class="jxr_keyword">if</strong> (argDt0.isFrozen() || argDt1.isFrozen()) {
+<a class="jxr_linenumber" name="L590" href="#L590">590</a>                         <strong class="jxr_keyword">if</strong> (argDt0 instanceof TupleType || argDt1 instanceof TupleType) {
+<a class="jxr_linenumber" name="L591" href="#L591">591</a>                             <strong class="jxr_keyword">throw</strong> <strong class="jxr_keyword">new</strong> UnsupportedOperationException(<span class="jxr_string">"Collections of tuples are not yet"</span> +
+<a class="jxr_linenumber" name="L592" href="#L592">592</a>                                     <span class="jxr_string">" supported within UDTs."</span>);
+<a class="jxr_linenumber" name="L593" href="#L593">593</a>                         }
+<a class="jxr_linenumber" name="L594" href="#L594">594</a> 
+<a class="jxr_linenumber" name="L595" href="#L595">595</a>                         JVar source = body.decl(model.ref(Map.<strong class="jxr_keyword">class</strong>).narrow(argc0, argc1),
+<a class="jxr_linenumber" name="L596" href="#L596">596</a>                                 fnamecl + <span class="jxr_string">"Source"</span>, data.invoke(<span class="jxr_string">"get"</span> + camelize(fname)));
+<a class="jxr_linenumber" name="L597" href="#L597">597</a>                         JVar target = body.decl(model.ref(Map.<strong class="jxr_keyword">class</strong>).narrow(argDt0.asJavaClass(), argDt1.asJavaClass()),
+<a class="jxr_linenumber" name="L598" href="#L598">598</a>                                 fnamecl + <span class="jxr_string">"Target"</span>,
+<a class="jxr_linenumber" name="L599" href="#L599">599</a>                                 JExpr._<strong class="jxr_keyword">new</strong>(model.ref(HashMap.<strong class="jxr_keyword">class</strong>).narrow(argDt0.asJavaClass(), argDt1.asJavaClass())));
+<a class="jxr_linenumber" name="L600" href="#L600">600</a>                         JClass entryClass = model.ref(Map.Entry.<strong class="jxr_keyword">class</strong>).narrow(argc0, argc1);
+<a class="jxr_linenumber" name="L601" href="#L601">601</a>                         JForEach forEach = body.forEach(entryClass, <span class="jxr_string">"entry"</span>, source.invoke(<span class="jxr_string">"entrySet"</span>));
+<a class="jxr_linenumber" name="L602" href="#L602">602</a>                         JVar entry = forEach.<strong class="jxr_keyword">var</strong>();
+<a class="jxr_linenumber" name="L603" href="#L603">603</a>                         JExpression k = entry.invoke(<span class="jxr_string">"getKey"</span>);
+<a class="jxr_linenumber" name="L604" href="#L604">604</a>                         JExpression v = entry.invoke(<span class="jxr_string">"getValue"</span>);
+<a class="jxr_linenumber" name="L605" href="#L605">605</a>                         JBlock forEachBody = forEach.body();
+<a class="jxr_linenumber" name="L606" href="#L606">606</a>                         JExpression key = argDt0.isFrozen()
+<a class="jxr_linenumber" name="L607" href="#L607">607</a>                                 ? argc0.staticInvoke(<span class="jxr_string">"udtMapper"</span>).invoke(<span class="jxr_string">"toUDT"</span>).arg(k).arg(session)
+<a class="jxr_linenumber" name="L608" href="#L608">608</a>                                 : k;
+<a class="jxr_linenumber" name="L609" href="#L609">609</a>                         JExpression value = argDt1.isFrozen()
+<a class="jxr_linenumber" name="L610" href="#L610">610</a>                                 ? argc1.staticInvoke(<span class="jxr_string">"udtMapper"</span>).invoke(<span class="jxr_string">"toUDT"</span>).arg(v).arg(session)
+<a class="jxr_linenumber" name="L611" href="#L611">611</a>                                 : v;
+<a class="jxr_linenumber" name="L612" href="#L612">612</a>                         forEachBody.add(target.invoke(<span class="jxr_string">"put"</span>).arg(key).arg(value));
+<a class="jxr_linenumber" name="L613" href="#L613">613</a>                         <strong class="jxr_keyword">return</strong> target;
+<a class="jxr_linenumber" name="L614" href="#L614">614</a>                     }
+<a class="jxr_linenumber" name="L615" href="#L615">615</a>                 }
 <a class="jxr_linenumber" name="L616" href="#L616">616</a> 
-<a class="jxr_linenumber" name="L617" href="#L617">617</a>     <strong class="jxr_keyword">private</strong> Pair&lt;JExpression, JExpression&gt; processTuple(DataType dt, JVar data, String fnamec, JBlock body, JVar session) {
-<a class="jxr_linenumber" name="L618" href="#L618">618</a>         TupleType tt = (TupleType) dt;
-<a class="jxr_linenumber" name="L619" href="#L619">619</a>         List&lt;DataType&gt; componentTypes = tt.getComponentTypes();
-<a class="jxr_linenumber" name="L620" href="#L620">620</a>         Class&lt;?&gt; tupleClass = getTupleClass(componentTypes.size());
-<a class="jxr_linenumber" name="L621" href="#L621">621</a>         JClass tuple = model.ref(tupleClass);
-<a class="jxr_linenumber" name="L622" href="#L622">622</a> 
-<a class="jxr_linenumber" name="L623" href="#L623">623</a>         JInvocation of = model.ref(TupleType.<strong class="jxr_keyword">class</strong>).staticInvoke(<span class="jxr_string">"of"</span>);
-<a class="jxr_linenumber" name="L624" href="#L624">624</a>         <strong class="jxr_keyword">for</strong> (DataType adt : componentTypes) {
-<a class="jxr_linenumber" name="L625" href="#L625">625</a>             tuple = tuple.narrow(getType(adt, model, cfg));
-<a class="jxr_linenumber" name="L626" href="#L626">626</a>         }
-<a class="jxr_linenumber" name="L627" href="#L627">627</a>         JVar tupleRef = body.decl(tuple, camelize(fnamec, <strong class="jxr_keyword">true</strong>) + <span class="jxr_string">"Tuple"</span>, data.invoke(<span class="jxr_string">"get"</span> + fnamec));
-<a class="jxr_linenumber" name="L628" href="#L628">628</a> 
-<a class="jxr_linenumber" name="L629" href="#L629">629</a>         <strong class="jxr_keyword">int</strong> i = 0;
-<a class="jxr_linenumber" name="L630" href="#L630">630</a>         ArrayList&lt;JExpression&gt; getvalues = <strong class="jxr_keyword">new</strong> ArrayList&lt;&gt;(componentTypes.size());
-<a class="jxr_linenumber" name="L631" href="#L631">631</a>         <strong class="jxr_keyword">for</strong> (DataType adt : componentTypes) {
-<a class="jxr_linenumber" name="L632" href="#L632">632</a>             JExpression jexpr = JExpr._<strong class="jxr_keyword">null</strong>();
-<a class="jxr_linenumber" name="L633" href="#L633">633</a>             getvalues.add(i, tupleRef.invoke(<span class="jxr_string">"getValue"</span> + i));
-<a class="jxr_linenumber" name="L634" href="#L634">634</a>             <strong class="jxr_keyword">if</strong> (adt.isFrozen()) {
-<a class="jxr_linenumber" name="L635" href="#L635">635</a>                 <strong class="jxr_keyword">if</strong> (adt instanceof UserType) {
-<a class="jxr_linenumber" name="L636" href="#L636">636</a>                     UserType ut = (UserType) adt;
-<a class="jxr_linenumber" name="L637" href="#L637">637</a>                     String tname = ut.getTypeName();
-<a class="jxr_linenumber" name="L638" href="#L638">638</a> 
-<a class="jxr_linenumber" name="L639" href="#L639">639</a>                     JVar udtValue = body.decl(model.ref(UDTValue.<strong class="jxr_keyword">class</strong>),
-<a class="jxr_linenumber" name="L640" href="#L640">640</a>                             camelize(tname, <strong class="jxr_keyword">true</strong>),
-<a class="jxr_linenumber" name="L641" href="#L641">641</a>                             model.ref(getFullClassName(cfg.jpackage, tname))
-<a class="jxr_linenumber" name="L642" href="#L642">642</a>                                     .staticInvoke(<span class="jxr_string">"udtMapper"</span>).invoke(<span class="jxr_string">"toUDT"</span>)
-<a class="jxr_linenumber" name="L643" href="#L643">643</a>                                     .arg(tupleRef.invoke(<span class="jxr_string">"getValue"</span> + i)).arg(session));
-<a class="jxr_linenumber" name="L644" href="#L644">644</a> 
-<a class="jxr_linenumber" name="L645" href="#L645">645</a>                     JVar userTypeE = body.decl(model.ref(UserType.<strong class="jxr_keyword">class</strong>), camelize(tname, <strong class="jxr_keyword">true</strong>) + <span class="jxr_string">"UserType"</span>,
-<a class="jxr_linenumber" name="L646" href="#L646">646</a>                             udtValue.invoke(<span class="jxr_string">"getType"</span>));
-<a class="jxr_linenumber" name="L647" href="#L647">647</a>                     jexpr = userTypeE;
-<a class="jxr_linenumber" name="L648" href="#L648">648</a>                     getvalues.set(i, udtValue);
-<a class="jxr_linenumber" name="L649" href="#L649">649</a>                 } <strong class="jxr_keyword">else</strong> <strong class="jxr_keyword">if</strong> (adt instanceof TupleType) {
-<a class="jxr_linenumber" name="L650" href="#L650">650</a>                     Pair&lt;JExpression, JExpression&gt; rvPair = processTuple(adt, tupleRef, <span class="jxr_string">"Value"</span> + i, body, session);
-<a class="jxr_linenumber" name="L651" href="#L651">651</a>                     JExpression ref = rvPair.getValue0();
-<a class="jxr_linenumber" name="L652" href="#L652">652</a>                     JExpression value = rvPair.getValue1();
-<a class="jxr_linenumber" name="L653" href="#L653">653</a>                     getvalues.set(i, value);
-<a class="jxr_linenumber" name="L654" href="#L654">654</a>                     jexpr = ref;
-<a class="jxr_linenumber" name="L655" href="#L655">655</a>                    <em class="jxr_comment">// jexpr = JExpr._null();</em>
-<a class="jxr_linenumber" name="L656" href="#L656">656</a>                 }
-<a class="jxr_linenumber" name="L657" href="#L657">657</a>             } <strong class="jxr_keyword">else</strong> <strong class="jxr_keyword">if</strong> (adt.isCollection()) {
-<a class="jxr_linenumber" name="L658" href="#L658">658</a>                 <em class="jxr_comment">// TODO implement</em>
-<a class="jxr_linenumber" name="L659" href="#L659">659</a>             } <strong class="jxr_keyword">else</strong> {
-<a class="jxr_linenumber" name="L660" href="#L660">660</a>                 jexpr = model.ref(DataType.<strong class="jxr_keyword">class</strong>).staticInvoke(typeToDTStaticMthod(adt.getName()));
-<a class="jxr_linenumber" name="L661" href="#L661">661</a>             }
-<a class="jxr_linenumber" name="L662" href="#L662">662</a>             i++;
-<a class="jxr_linenumber" name="L663" href="#L663">663</a>             of.arg(jexpr);
-<a class="jxr_linenumber" name="L664" href="#L664">664</a>         }
-<a class="jxr_linenumber" name="L665" href="#L665">665</a>         JVar ttE = body.decl(model.ref(TupleType.<strong class="jxr_keyword">class</strong>), <span class="jxr_string">"tupleType"</span> + seq.next(), of);
-<a class="jxr_linenumber" name="L666" href="#L666">666</a>         JVar tvE = body.decl(model.ref(TupleValue.<strong class="jxr_keyword">class</strong>), <span class="jxr_string">"tupleValue"</span> + seq.next(), ttE.invoke(<span class="jxr_string">"newValue"</span>));
-<a class="jxr_linenumber" name="L667" href="#L667">667</a>         <strong class="jxr_keyword">for</strong> (<strong class="jxr_keyword">int</strong> a = 0; a &lt; getvalues.size(); a++) {
-<a class="jxr_linenumber" name="L668" href="#L668">668</a>             body.add(tvE.invoke(setDataMethod(componentTypes.get(a).getName())).arg(JExpr.lit(a)).arg(getvalues.get(a)));
+<a class="jxr_linenumber" name="L617" href="#L617">617</a>             }
+<a class="jxr_linenumber" name="L618" href="#L618">618</a>         }
+<a class="jxr_linenumber" name="L619" href="#L619">619</a>         <strong class="jxr_keyword">return</strong> data.invoke(<span class="jxr_string">"get"</span> + camelize(fname));
+<a class="jxr_linenumber" name="L620" href="#L620">620</a>     }
+<a class="jxr_linenumber" name="L621" href="#L621">621</a> 
+<a class="jxr_linenumber" name="L622" href="#L622">622</a>     <strong class="jxr_keyword">private</strong> Pair&lt;JExpression, JExpression&gt; processTuple(DataType dt, JVar data, String fnamec, JBlock body, JVar session) {
+<a class="jxr_linenumber" name="L623" href="#L623">623</a>         TupleType tt = (TupleType) dt;
+<a class="jxr_linenumber" name="L624" href="#L624">624</a>         List&lt;DataType&gt; componentTypes = tt.getComponentTypes();
+<a class="jxr_linenumber" name="L625" href="#L625">625</a>         Class&lt;?&gt; tupleClass = getTupleClass(componentTypes.size());
+<a class="jxr_linenumber" name="L626" href="#L626">626</a>         JClass tuple = model.ref(tupleClass);
+<a class="jxr_linenumber" name="L627" href="#L627">627</a> 
+<a class="jxr_linenumber" name="L628" href="#L628">628</a>         JInvocation of = model.ref(TupleType.<strong class="jxr_keyword">class</strong>).staticInvoke(<span class="jxr_string">"of"</span>);
+<a class="jxr_linenumber" name="L629" href="#L629">629</a>         <strong class="jxr_keyword">for</strong> (DataType adt : componentTypes) {
+<a class="jxr_linenumber" name="L630" href="#L630">630</a>             tuple = tuple.narrow(getType(adt, model, cfg));
+<a class="jxr_linenumber" name="L631" href="#L631">631</a>         }
+<a class="jxr_linenumber" name="L632" href="#L632">632</a>         JVar tupleRef = body.decl(tuple, camelize(fnamec, <strong class="jxr_keyword">true</strong>) + <span class="jxr_string">"Tuple"</span>, data.invoke(<span class="jxr_string">"get"</span> + fnamec));
+<a class="jxr_linenumber" name="L633" href="#L633">633</a> 
+<a class="jxr_linenumber" name="L634" href="#L634">634</a>         <strong class="jxr_keyword">int</strong> i = 0;
+<a class="jxr_linenumber" name="L635" href="#L635">635</a>         ArrayList&lt;JExpression&gt; getvalues = <strong class="jxr_keyword">new</strong> ArrayList&lt;&gt;(componentTypes.size());
+<a class="jxr_linenumber" name="L636" href="#L636">636</a>         <strong class="jxr_keyword">for</strong> (DataType adt : componentTypes) {
+<a class="jxr_linenumber" name="L637" href="#L637">637</a>             JExpression jexpr = JExpr._<strong class="jxr_keyword">null</strong>();
+<a class="jxr_linenumber" name="L638" href="#L638">638</a>             getvalues.add(i, tupleRef.invoke(<span class="jxr_string">"getValue"</span> + i));
+<a class="jxr_linenumber" name="L639" href="#L639">639</a>             <strong class="jxr_keyword">if</strong> (adt.isFrozen()) {
+<a class="jxr_linenumber" name="L640" href="#L640">640</a>                 <strong class="jxr_keyword">if</strong> (adt instanceof UserType) {
+<a class="jxr_linenumber" name="L641" href="#L641">641</a>                     UserType ut = (UserType) adt;
+<a class="jxr_linenumber" name="L642" href="#L642">642</a>                     String tname = ut.getTypeName();
+<a class="jxr_linenumber" name="L643" href="#L643">643</a> 
+<a class="jxr_linenumber" name="L644" href="#L644">644</a>                     JVar udtValue = body.decl(model.ref(UDTValue.<strong class="jxr_keyword">class</strong>),
+<a class="jxr_linenumber" name="L645" href="#L645">645</a>                             camelize(tname, <strong class="jxr_keyword">true</strong>),
+<a class="jxr_linenumber" name="L646" href="#L646">646</a>                             model.ref(getFullClassName(cfg.jpackage, tname))
+<a class="jxr_linenumber" name="L647" href="#L647">647</a>                                     .staticInvoke(<span class="jxr_string">"udtMapper"</span>).invoke(<span class="jxr_string">"toUDT"</span>)
+<a class="jxr_linenumber" name="L648" href="#L648">648</a>                                     .arg(tupleRef.invoke(<span class="jxr_string">"getValue"</span> + i)).arg(session));
+<a class="jxr_linenumber" name="L649" href="#L649">649</a> 
+<a class="jxr_linenumber" name="L650" href="#L650">650</a>                     JVar userTypeE = body.decl(model.ref(UserType.<strong class="jxr_keyword">class</strong>), camelize(tname, <strong class="jxr_keyword">true</strong>) + <span class="jxr_string">"UserType"</span>,
+<a class="jxr_linenumber" name="L651" href="#L651">651</a>                             udtValue.invoke(<span class="jxr_string">"getType"</span>));
+<a class="jxr_linenumber" name="L652" href="#L652">652</a>                     jexpr = userTypeE;
+<a class="jxr_linenumber" name="L653" href="#L653">653</a>                     getvalues.set(i, udtValue);
+<a class="jxr_linenumber" name="L654" href="#L654">654</a>                 } <strong class="jxr_keyword">else</strong> <strong class="jxr_keyword">if</strong> (adt instanceof TupleType) {
+<a class="jxr_linenumber" name="L655" href="#L655">655</a>                     Pair&lt;JExpression, JExpression&gt; rvPair = processTuple(adt, tupleRef, <span class="jxr_string">"Value"</span> + i, body, session);
+<a class="jxr_linenumber" name="L656" href="#L656">656</a>                     JExpression ref = rvPair.getValue0();
+<a class="jxr_linenumber" name="L657" href="#L657">657</a>                     JExpression value = rvPair.getValue1();
+<a class="jxr_linenumber" name="L658" href="#L658">658</a>                     getvalues.set(i, value);
+<a class="jxr_linenumber" name="L659" href="#L659">659</a>                     jexpr = ref;
+<a class="jxr_linenumber" name="L660" href="#L660">660</a>                    <em class="jxr_comment">// jexpr = JExpr._null();</em>
+<a class="jxr_linenumber" name="L661" href="#L661">661</a>                 }
+<a class="jxr_linenumber" name="L662" href="#L662">662</a>             } <strong class="jxr_keyword">else</strong> <strong class="jxr_keyword">if</strong> (adt.isCollection()) {
+<a class="jxr_linenumber" name="L663" href="#L663">663</a>                 <em class="jxr_comment">// TODO implement</em>
+<a class="jxr_linenumber" name="L664" href="#L664">664</a>             } <strong class="jxr_keyword">else</strong> {
+<a class="jxr_linenumber" name="L665" href="#L665">665</a>                 jexpr = model.ref(DataType.<strong class="jxr_keyword">class</strong>).staticInvoke(typeToDTStaticMthod(adt.getName()));
+<a class="jxr_linenumber" name="L666" href="#L666">666</a>             }
+<a class="jxr_linenumber" name="L667" href="#L667">667</a>             i++;
+<a class="jxr_linenumber" name="L668" href="#L668">668</a>             of.arg(jexpr);
 <a class="jxr_linenumber" name="L669" href="#L669">669</a>         }
-<a class="jxr_linenumber" name="L670" href="#L670">670</a>         <strong class="jxr_keyword">return</strong> Pair.with(ttE, tvE);
-<a class="jxr_linenumber" name="L671" href="#L671">671</a>     }
-<a class="jxr_linenumber" name="L672" href="#L672">672</a> 
-<a class="jxr_linenumber" name="L673" href="#L673">673</a>     <em class="jxr_javadoccomment">/**</em>
-<a class="jxr_linenumber" name="L674" href="#L674">674</a> <em class="jxr_javadoccomment">     * Generates private field, getter and setter, some cassandra annotations</em>
-<a class="jxr_linenumber" name="L675" href="#L675">675</a> <em class="jxr_javadoccomment">     *</em>
-<a class="jxr_linenumber" name="L676" href="#L676">676</a> <em class="jxr_javadoccomment">     * @param clazz pojo definition</em>
-<a class="jxr_linenumber" name="L677" href="#L677">677</a> <em class="jxr_javadoccomment">     * @param dt    data type of the field to be generated</em>
-<a class="jxr_linenumber" name="L678" href="#L678">678</a> <em class="jxr_javadoccomment">     * @param name  name of the filed</em>
-<a class="jxr_linenumber" name="L679" href="#L679">679</a> <em class="jxr_javadoccomment">     * @param pko   order of partition key if composite</em>
-<a class="jxr_linenumber" name="L680" href="#L680">680</a> <em class="jxr_javadoccomment">     * @param ann   either @Field or @Column datastax annotation</em>
-<a class="jxr_linenumber" name="L681" href="#L681">681</a> <em class="jxr_javadoccomment">     *              depending on whether table or udt is processed by method</em>
-<a class="jxr_linenumber" name="L682" href="#L682">682</a> <em class="jxr_javadoccomment">     */</em>
-<a class="jxr_linenumber" name="L683" href="#L683">683</a>     <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">void</strong> javaBeanFieldWithGetterSetter(
-<a class="jxr_linenumber" name="L684" href="#L684">684</a>             JDefinedClass clazz,
-<a class="jxr_linenumber" name="L685" href="#L685">685</a>             DataType dt, String name, <strong class="jxr_keyword">int</strong> pko,
-<a class="jxr_linenumber" name="L686" href="#L686">686</a>             Class&lt;? <strong class="jxr_keyword">extends</strong> Annotation&gt; ann) {
-<a class="jxr_linenumber" name="L687" href="#L687">687</a>         JClass ref = getType(dt, model, cfg);
-<a class="jxr_linenumber" name="L688" href="#L688">688</a>         JFieldVar f = clazz.field(JMod.PRIVATE, ref, camelize(name, <strong class="jxr_keyword">true</strong>));
-<a class="jxr_linenumber" name="L689" href="#L689">689</a>         <strong class="jxr_keyword">if</strong> (ann != <strong class="jxr_keyword">null</strong>) {
-<a class="jxr_linenumber" name="L690" href="#L690">690</a>             f.annotate(ann).param(<span class="jxr_string">"name"</span>, name);
-<a class="jxr_linenumber" name="L691" href="#L691">691</a>         }
-<a class="jxr_linenumber" name="L692" href="#L692">692</a>         <strong class="jxr_keyword">if</strong> (dt.isFrozen()) {
-<a class="jxr_linenumber" name="L693" href="#L693">693</a>             f.annotate(com.datastax.driver.mapping.annotations.Frozen.<strong class="jxr_keyword">class</strong>);
-<a class="jxr_linenumber" name="L694" href="#L694">694</a>         }
-<a class="jxr_linenumber" name="L695" href="#L695">695</a>         <strong class="jxr_keyword">if</strong> (pko == 0) {
-<a class="jxr_linenumber" name="L696" href="#L696">696</a>             f.annotate(com.datastax.driver.mapping.annotations.PartitionKey.<strong class="jxr_keyword">class</strong>);
-<a class="jxr_linenumber" name="L697" href="#L697">697</a>         } <strong class="jxr_keyword">else</strong> <strong class="jxr_keyword">if</strong> (pko &gt; 0) {
-<a class="jxr_linenumber" name="L698" href="#L698">698</a>             f.annotate(com.datastax.driver.mapping.annotations.PartitionKey.<strong class="jxr_keyword">class</strong>).param(<span class="jxr_string">"value"</span>, pko);
+<a class="jxr_linenumber" name="L670" href="#L670">670</a>         JVar ttE = body.decl(model.ref(TupleType.<strong class="jxr_keyword">class</strong>), <span class="jxr_string">"tupleType"</span> + seq.next(), of);
+<a class="jxr_linenumber" name="L671" href="#L671">671</a>         JVar tvE = body.decl(model.ref(TupleValue.<strong class="jxr_keyword">class</strong>), <span class="jxr_string">"tupleValue"</span> + seq.next(), ttE.invoke(<span class="jxr_string">"newValue"</span>));
+<a class="jxr_linenumber" name="L672" href="#L672">672</a>         <strong class="jxr_keyword">for</strong> (<strong class="jxr_keyword">int</strong> a = 0; a &lt; getvalues.size(); a++) {
+<a class="jxr_linenumber" name="L673" href="#L673">673</a>             body.add(tvE.invoke(setDataMethod(componentTypes.get(a).getName())).arg(JExpr.lit(a)).arg(getvalues.get(a)));
+<a class="jxr_linenumber" name="L674" href="#L674">674</a>         }
+<a class="jxr_linenumber" name="L675" href="#L675">675</a>         <strong class="jxr_keyword">return</strong> Pair.with(ttE, tvE);
+<a class="jxr_linenumber" name="L676" href="#L676">676</a>     }
+<a class="jxr_linenumber" name="L677" href="#L677">677</a> 
+<a class="jxr_linenumber" name="L678" href="#L678">678</a>     <em class="jxr_javadoccomment">/**</em>
+<a class="jxr_linenumber" name="L679" href="#L679">679</a> <em class="jxr_javadoccomment">     * Generates private field, getter and setter, some cassandra annotations</em>
+<a class="jxr_linenumber" name="L680" href="#L680">680</a> <em class="jxr_javadoccomment">     *</em>
+<a class="jxr_linenumber" name="L681" href="#L681">681</a> <em class="jxr_javadoccomment">     * @param clazz pojo definition</em>
+<a class="jxr_linenumber" name="L682" href="#L682">682</a> <em class="jxr_javadoccomment">     * @param dt    data type of the field to be generated</em>
+<a class="jxr_linenumber" name="L683" href="#L683">683</a> <em class="jxr_javadoccomment">     * @param name  name of the filed</em>
+<a class="jxr_linenumber" name="L684" href="#L684">684</a> <em class="jxr_javadoccomment">     * @param pko   order of partition key if composite</em>
+<a class="jxr_linenumber" name="L685" href="#L685">685</a> <em class="jxr_javadoccomment">     * @param ann   either @Field or @Column datastax annotation</em>
+<a class="jxr_linenumber" name="L686" href="#L686">686</a> <em class="jxr_javadoccomment">     *              depending on whether table or udt is processed by method</em>
+<a class="jxr_linenumber" name="L687" href="#L687">687</a> <em class="jxr_javadoccomment">     */</em>
+<a class="jxr_linenumber" name="L688" href="#L688">688</a>     <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">void</strong> javaBeanFieldWithGetterSetter(
+<a class="jxr_linenumber" name="L689" href="#L689">689</a>             JDefinedClass clazz,
+<a class="jxr_linenumber" name="L690" href="#L690">690</a>             DataType dt, String name, <strong class="jxr_keyword">int</strong> pko,
+<a class="jxr_linenumber" name="L691" href="#L691">691</a>             Class&lt;? <strong class="jxr_keyword">extends</strong> Annotation&gt; ann) {
+<a class="jxr_linenumber" name="L692" href="#L692">692</a>         JClass ref = getType(dt, model, cfg);
+<a class="jxr_linenumber" name="L693" href="#L693">693</a>         JFieldVar f = clazz.field(JMod.PRIVATE, ref, camelize(name, <strong class="jxr_keyword">true</strong>));
+<a class="jxr_linenumber" name="L694" href="#L694">694</a>         <strong class="jxr_keyword">if</strong> (ann != <strong class="jxr_keyword">null</strong>) {
+<a class="jxr_linenumber" name="L695" href="#L695">695</a>             f.annotate(ann).param(<span class="jxr_string">"name"</span>, name);
+<a class="jxr_linenumber" name="L696" href="#L696">696</a>         }
+<a class="jxr_linenumber" name="L697" href="#L697">697</a>         <strong class="jxr_keyword">if</strong> (dt.isFrozen()) {
+<a class="jxr_linenumber" name="L698" href="#L698">698</a>             f.annotate(com.datastax.driver.mapping.annotations.Frozen.<strong class="jxr_keyword">class</strong>);
 <a class="jxr_linenumber" name="L699" href="#L699">699</a>         }
-<a class="jxr_linenumber" name="L700" href="#L700">700</a>         clazz.method(PUBLIC, ref, <span class="jxr_string">"get"</span> + camelize(name)).body()._<strong class="jxr_keyword">return</strong>(JExpr._<strong class="jxr_keyword">this</strong>().ref(f));
-<a class="jxr_linenumber" name="L701" href="#L701">701</a>         JMethod m = clazz.method(PUBLIC, Void.TYPE, <span class="jxr_string">"set"</span> + camelize(name));
-<a class="jxr_linenumber" name="L702" href="#L702">702</a>         JVar p = m.param(ref, camelize(name, <strong class="jxr_keyword">true</strong>));
-<a class="jxr_linenumber" name="L703" href="#L703">703</a>         m.body().assign(JExpr._<strong class="jxr_keyword">this</strong>().ref(f), p);
-<a class="jxr_linenumber" name="L704" href="#L704">704</a>     }
-<a class="jxr_linenumber" name="L705" href="#L705">705</a> 
-<a class="jxr_linenumber" name="L706" href="#L706">706</a>     <em class="jxr_javadoccomment">/**</em>
-<a class="jxr_linenumber" name="L707" href="#L707">707</a> <em class="jxr_javadoccomment">     * Generates row mapper code for a specified pojo</em>
-<a class="jxr_linenumber" name="L708" href="#L708">708</a> <em class="jxr_javadoccomment">     *</em>
-<a class="jxr_linenumber" name="L709" href="#L709">709</a> <em class="jxr_javadoccomment">     * @param clazz     pojo class</em>
-<a class="jxr_linenumber" name="L710" href="#L710">710</a> <em class="jxr_javadoccomment">     * @param rowMapper RowMapper interface</em>
-<a class="jxr_linenumber" name="L711" href="#L711">711</a> <em class="jxr_javadoccomment">     * @param fields    fields to map</em>
-<a class="jxr_linenumber" name="L712" href="#L712">712</a> <em class="jxr_javadoccomment">     * @throws JClassAlreadyExistsException thrown if class already exists in code model</em>
-<a class="jxr_linenumber" name="L713" href="#L713">713</a> <em class="jxr_javadoccomment">     */</em>
-<a class="jxr_linenumber" name="L714" href="#L714">714</a>     <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">void</strong> rowMapperCode(JDefinedClass clazz, JClass
-<a class="jxr_linenumber" name="L715" href="#L715">715</a>             rowMapper, Collection&lt;Pair&lt;String, DataType&gt;&gt; fields) <strong class="jxr_keyword">throws</strong> JClassAlreadyExistsException {
-<a class="jxr_linenumber" name="L716" href="#L716">716</a>         JClass rowMapperNarrowed = rowMapper.narrow(clazz);
-<a class="jxr_linenumber" name="L717" href="#L717">717</a>         JDefinedClass mapperImpl = clazz._<strong class="jxr_keyword">class</strong>(
-<a class="jxr_linenumber" name="L718" href="#L718">718</a>                 JMod.FINAL | JMod.STATIC | JMod.PRIVATE, clazz.name() + <span class="jxr_string">"RowMapper"</span>)
-<a class="jxr_linenumber" name="L719" href="#L719">719</a>                 ._<strong class="jxr_keyword">implements</strong>(rowMapperNarrowed);
-<a class="jxr_linenumber" name="L720" href="#L720">720</a>         clazz.field(JMod.PRIVATE | JMod.STATIC | JMod.FINAL, mapperImpl, <span class="jxr_string">"mapper"</span>, JExpr._<strong class="jxr_keyword">new</strong>(mapperImpl));
-<a class="jxr_linenumber" name="L721" href="#L721">721</a> 
-<a class="jxr_linenumber" name="L722" href="#L722">722</a>         JMethod map = mapperImpl.method(PUBLIC, clazz, <span class="jxr_string">"map"</span>);
-<a class="jxr_linenumber" name="L723" href="#L723">723</a>         JVar param = map.param(com.datastax.driver.core.GettableData.<strong class="jxr_keyword">class</strong>, <span class="jxr_string">"data"</span>);
-<a class="jxr_linenumber" name="L724" href="#L724">724</a>         JBlock body = map.body();
-<a class="jxr_linenumber" name="L725" href="#L725">725</a>         body._<strong class="jxr_keyword">if</strong>(param.eq(JExpr._<strong class="jxr_keyword">null</strong>()))._then()._<strong class="jxr_keyword">return</strong>(JExpr._<strong class="jxr_keyword">null</strong>());
-<a class="jxr_linenumber" name="L726" href="#L726">726</a>         JVar bean = body.decl(clazz, <span class="jxr_string">"entity"</span>, JExpr._<strong class="jxr_keyword">new</strong>(clazz));
-<a class="jxr_linenumber" name="L727" href="#L727">727</a>         <strong class="jxr_keyword">for</strong> (Pair&lt;String, DataType&gt; field : fields) {
-<a class="jxr_linenumber" name="L728" href="#L728">728</a>             String name = field.getValue0();
-<a class="jxr_linenumber" name="L729" href="#L729">729</a>             DataType type = field.getValue1();
-<a class="jxr_linenumber" name="L730" href="#L730">730</a>             <strong class="jxr_keyword">if</strong> (type.isCollection()) {
-<a class="jxr_linenumber" name="L731" href="#L731">731</a>                 JBlock jb = body._<strong class="jxr_keyword">if</strong>(JOp.not(param.invoke(<span class="jxr_string">"isNull"</span>)
-<a class="jxr_linenumber" name="L732" href="#L732">732</a>                         .arg(lit(name))))._then();
-<a class="jxr_linenumber" name="L733" href="#L733">733</a>                 List&lt;DataType&gt; typeArgs = type.getTypeArguments();
-<a class="jxr_linenumber" name="L734" href="#L734">734</a>                 JExpression setterExpression;
-<a class="jxr_linenumber" name="L735" href="#L735">735</a> 
-<a class="jxr_linenumber" name="L736" href="#L736">736</a>                 <strong class="jxr_keyword">if</strong> (typeArgs.size() == 1) {
-<a class="jxr_linenumber" name="L737" href="#L737">737</a>                     DataType arg = typeArgs.get(0);
-<a class="jxr_linenumber" name="L738" href="#L738">738</a>                     JClass cl = getType(arg, model, cfg);
-<a class="jxr_linenumber" name="L739" href="#L739">739</a>                     JExpression tclass = arg.isFrozen() ?
-<a class="jxr_linenumber" name="L740" href="#L740">740</a>                             arg.asJavaClass().isAssignableFrom(UDTValue.<strong class="jxr_keyword">class</strong>) ?
-<a class="jxr_linenumber" name="L741" href="#L741">741</a>                                     model.ref(UDTValue.<strong class="jxr_keyword">class</strong>).dotclass() : model.ref(TupleValue.<strong class="jxr_keyword">class</strong>).dotclass()
-<a class="jxr_linenumber" name="L742" href="#L742">742</a>                             : cl.dotclass();
-<a class="jxr_linenumber" name="L743" href="#L743">743</a>                     setterExpression = param.invoke(getDataMethod(type.getName()))
-<a class="jxr_linenumber" name="L744" href="#L744">744</a>                             .arg(name)
-<a class="jxr_linenumber" name="L745" href="#L745">745</a>                             .arg(tclass);
-<a class="jxr_linenumber" name="L746" href="#L746">746</a>                     <strong class="jxr_keyword">if</strong> (arg.isFrozen()) {
-<a class="jxr_linenumber" name="L747" href="#L747">747</a>                         <strong class="jxr_keyword">if</strong> (arg instanceof UserType) {
-<a class="jxr_linenumber" name="L748" href="#L748">748</a>                             JClass collectionClass = model.ref(
-<a class="jxr_linenumber" name="L749" href="#L749">749</a>                                     type.asJavaClass().isAssignableFrom(List.<strong class="jxr_keyword">class</strong>) ?
-<a class="jxr_linenumber" name="L750" href="#L750">750</a>                                             LinkedList.<strong class="jxr_keyword">class</strong> : HashSet.<strong class="jxr_keyword">class</strong>).narrow(cl);
-<a class="jxr_linenumber" name="L751" href="#L751">751</a>                             JVar collection = jb.decl(collectionClass, camelize(name, <strong class="jxr_keyword">true</strong>), JExpr._<strong class="jxr_keyword">new</strong>(collectionClass));
-<a class="jxr_linenumber" name="L752" href="#L752">752</a>                             JClass udtValueCollection = model.ref(type.asJavaClass()).narrow(UDTValue.<strong class="jxr_keyword">class</strong>);
-<a class="jxr_linenumber" name="L753" href="#L753">753</a>                             JVar udtCollection = jb.decl(udtValueCollection, camelize(name, <strong class="jxr_keyword">true</strong>) + <span class="jxr_string">"Source"</span>, setterExpression);
-<a class="jxr_linenumber" name="L754" href="#L754">754</a> 
-<a class="jxr_linenumber" name="L755" href="#L755">755</a>                             JForEach forEach = jb.forEach(model.ref(UDTValue.<strong class="jxr_keyword">class</strong>), <span class="jxr_string">"entry"</span>, udtCollection);
-<a class="jxr_linenumber" name="L756" href="#L756">756</a>                             JVar <strong class="jxr_keyword">var</strong> = forEach.<strong class="jxr_keyword">var</strong>();
-<a class="jxr_linenumber" name="L757" href="#L757">757</a>                             JBlock forEachBody = forEach.body();
-<a class="jxr_linenumber" name="L758" href="#L758">758</a>                             forEachBody.add(collection.invoke(<span class="jxr_string">"add"</span>).arg(cl.staticInvoke(<span class="jxr_string">"mapper"</span>).invoke(<span class="jxr_string">"map"</span>).arg(<strong class="jxr_keyword">var</strong>)));
-<a class="jxr_linenumber" name="L759" href="#L759">759</a>                             setterExpression = collection;
-<a class="jxr_linenumber" name="L760" href="#L760">760</a>                         } <strong class="jxr_keyword">else</strong> <strong class="jxr_keyword">if</strong> (arg instanceof TupleType) {
-<a class="jxr_linenumber" name="L761" href="#L761">761</a>                             <em class="jxr_comment">// TODO handle tuples</em>
-<a class="jxr_linenumber" name="L762" href="#L762">762</a>                             <strong class="jxr_keyword">throw</strong> <strong class="jxr_keyword">new</strong> UnsupportedOperationException(<span class="jxr_string">"Collections of tuples"</span> +
-<a class="jxr_linenumber" name="L763" href="#L763">763</a>                                     <span class="jxr_string">" are not yet supported when converting from Row to POJO."</span>);
-<a class="jxr_linenumber" name="L764" href="#L764">764</a>                         }
-<a class="jxr_linenumber" name="L765" href="#L765">765</a>                     }
-<a class="jxr_linenumber" name="L766" href="#L766">766</a>                 } <strong class="jxr_keyword">else</strong> <strong class="jxr_keyword">if</strong> (typeArgs.size() == 2) {
-<a class="jxr_linenumber" name="L767" href="#L767">767</a>                     DataType arg0 = typeArgs.get(0);
-<a class="jxr_linenumber" name="L768" href="#L768">768</a>                     DataType arg1 = typeArgs.get(1);
-<a class="jxr_linenumber" name="L769" href="#L769">769</a>                     JClass argc0 = getType(arg0, model, cfg);
-<a class="jxr_linenumber" name="L770" href="#L770">770</a>                     JClass argc1 = getType(arg1, model, cfg);
-<a class="jxr_linenumber" name="L771" href="#L771">771</a>                     <strong class="jxr_keyword">if</strong> (arg0.isFrozen() || arg1.isFrozen()) {
-<a class="jxr_linenumber" name="L772" href="#L772">772</a> 
-<a class="jxr_linenumber" name="L773" href="#L773">773</a>                         JVar hashmap = jb.decl(model.ref(Map.<strong class="jxr_keyword">class</strong>).narrow(argc0).narrow(argc1)
-<a class="jxr_linenumber" name="L774" href="#L774">774</a>                                 , camelize(name, <strong class="jxr_keyword">true</strong>), JExpr._<strong class="jxr_keyword">new</strong>(model.ref(HashMap.<strong class="jxr_keyword">class</strong>)
-<a class="jxr_linenumber" name="L775" href="#L775">775</a>                                 .narrow(argc0).narrow(argc1)));
-<a class="jxr_linenumber" name="L776" href="#L776">776</a>                         JExpression arg0csClass = model.ref(arg0.asJavaClass()).dotclass();
-<a class="jxr_linenumber" name="L777" href="#L777">777</a>                         JExpression arg1csClass = model.ref(arg1.asJavaClass()).dotclass();
-<a class="jxr_linenumber" name="L778" href="#L778">778</a> 
-<a class="jxr_linenumber" name="L779" href="#L779">779</a>                         JVar frozen = jb.decl(model.ref(Map.<strong class="jxr_keyword">class</strong>).narrow(arg0.asJavaClass(),
-<a class="jxr_linenumber" name="L780" href="#L780">780</a>                                         arg1.asJavaClass()), camelize(name, <strong class="jxr_keyword">true</strong>) + <span class="jxr_string">"Source"</span>,
-<a class="jxr_linenumber" name="L781" href="#L781">781</a>                                 param.invoke(getDataMethod(type.getName()))
-<a class="jxr_linenumber" name="L782" href="#L782">782</a>                                         .arg(name)
-<a class="jxr_linenumber" name="L783" href="#L783">783</a>                                         .arg(arg0csClass)
-<a class="jxr_linenumber" name="L784" href="#L784">784</a>                                         .arg(arg1csClass));
-<a class="jxr_linenumber" name="L785" href="#L785">785</a>                         JForEach forEach = jb.forEach(model.ref(Map.Entry.<strong class="jxr_keyword">class</strong>).narrow(arg0.asJavaClass(),
-<a class="jxr_linenumber" name="L786" href="#L786">786</a>                                 arg1.asJavaClass()), <span class="jxr_string">"entry"</span>, frozen.invoke(<span class="jxr_string">"entrySet"</span>));
-<a class="jxr_linenumber" name="L787" href="#L787">787</a>                         JVar <strong class="jxr_keyword">var</strong> = forEach.<strong class="jxr_keyword">var</strong>();
-<a class="jxr_linenumber" name="L788" href="#L788">788</a>                         JBlock forEachBody = forEach.body();
-<a class="jxr_linenumber" name="L789" href="#L789">789</a> 
-<a class="jxr_linenumber" name="L790" href="#L790">790</a>                         forEachBody.add(hashmap.invoke(<span class="jxr_string">"put"</span>)
-<a class="jxr_linenumber" name="L791" href="#L791">791</a>                                         .arg(arg0.isFrozen() ?
-<a class="jxr_linenumber" name="L792" href="#L792">792</a>                                                         argc0.staticInvoke(<span class="jxr_string">"mapper"</span>).invoke(<span class="jxr_string">"map"</span>).arg(<strong class="jxr_keyword">var</strong>.invoke(<span class="jxr_string">"getKey"</span>)) :
-<a class="jxr_linenumber" name="L793" href="#L793">793</a>                                                         <strong class="jxr_keyword">var</strong>.invoke(<span class="jxr_string">"getKey"</span>)
-<a class="jxr_linenumber" name="L794" href="#L794">794</a>                                         ).arg(arg1.isFrozen() ?
-<a class="jxr_linenumber" name="L795" href="#L795">795</a>                                                 argc1.staticInvoke(<span class="jxr_string">"mapper"</span>).invoke(<span class="jxr_string">"map"</span>).arg(<strong class="jxr_keyword">var</strong>.invoke(<span class="jxr_string">"getValue"</span>)) :
-<a class="jxr_linenumber" name="L796" href="#L796">796</a>                                                 <strong class="jxr_keyword">var</strong>.invoke(<span class="jxr_string">"getValue"</span>))
-<a class="jxr_linenumber" name="L797" href="#L797">797</a>                         );
-<a class="jxr_linenumber" name="L798" href="#L798">798</a>                         setterExpression = hashmap;
-<a class="jxr_linenumber" name="L799" href="#L799">799</a>                     } <strong class="jxr_keyword">else</strong> {
-<a class="jxr_linenumber" name="L800" href="#L800">800</a>                         setterExpression = param.invoke(getDataMethod(type.getName()))
-<a class="jxr_linenumber" name="L801" href="#L801">801</a>                                 .arg(name)
-<a class="jxr_linenumber" name="L802" href="#L802">802</a>                                 .arg(argc0.dotclass()).arg(argc1.dotclass());
-<a class="jxr_linenumber" name="L803" href="#L803">803</a>                     }
-<a class="jxr_linenumber" name="L804" href="#L804">804</a>                 } <strong class="jxr_keyword">else</strong> {
-<a class="jxr_linenumber" name="L805" href="#L805">805</a>                     <strong class="jxr_keyword">throw</strong> <strong class="jxr_keyword">new</strong> RuntimeException(String.format(<span class="jxr_string">"Unsupported arguments count %d: "</span>, typeArgs.size()));
-<a class="jxr_linenumber" name="L806" href="#L806">806</a>                 }
-<a class="jxr_linenumber" name="L807" href="#L807">807</a> 
-<a class="jxr_linenumber" name="L808" href="#L808">808</a> 
-<a class="jxr_linenumber" name="L809" href="#L809">809</a>                 jb.add(bean.invoke(<span class="jxr_string">"set"</span> + camelize(name))
-<a class="jxr_linenumber" name="L810" href="#L810">810</a>                         .arg(setterExpression));
-<a class="jxr_linenumber" name="L811" href="#L811">811</a>             } <strong class="jxr_keyword">else</strong> <strong class="jxr_keyword">if</strong> (type.isFrozen()) {
-<a class="jxr_linenumber" name="L812" href="#L812">812</a>                 <strong class="jxr_keyword">if</strong> (type instanceof UserType) {
-<a class="jxr_linenumber" name="L813" href="#L813">813</a>                     UserType ut = (UserType) type;
-<a class="jxr_linenumber" name="L814" href="#L814">814</a>                     body.add(bean.invoke(<span class="jxr_string">"set"</span> + camelize(name))
-<a class="jxr_linenumber" name="L815" href="#L815">815</a>                             .arg(mapUDT(name, ut, param, type)));
-<a class="jxr_linenumber" name="L816" href="#L816">816</a>                 } <strong class="jxr_keyword">else</strong> <strong class="jxr_keyword">if</strong> (type instanceof TupleType) {
-<a class="jxr_linenumber" name="L817" href="#L817">817</a>                     TupleType tt = (TupleType) type;
-<a class="jxr_linenumber" name="L818" href="#L818">818</a>                     JBlock cond = body._<strong class="jxr_keyword">if</strong>(JOp.not(param.invoke(<span class="jxr_string">"isNull"</span>)
-<a class="jxr_linenumber" name="L819" href="#L819">819</a>                             .arg(lit(name))))._then();
-<a class="jxr_linenumber" name="L820" href="#L820">820</a>                     mapTuple(tt, cond, name, param, bean, type);
-<a class="jxr_linenumber" name="L821" href="#L821">821</a> 
-<a class="jxr_linenumber" name="L822" href="#L822">822</a>                 }
-<a class="jxr_linenumber" name="L823" href="#L823">823</a>             } <strong class="jxr_keyword">else</strong> {
-<a class="jxr_linenumber" name="L824" href="#L824">824</a>                 body.add(bean.invoke(<span class="jxr_string">"set"</span> + camelize(name))
-<a class="jxr_linenumber" name="L825" href="#L825">825</a>                         .arg(param.invoke(getDataMethod(type.getName())).arg(name)));
-<a class="jxr_linenumber" name="L826" href="#L826">826</a>             }
-<a class="jxr_linenumber" name="L827" href="#L827">827</a>         }
-<a class="jxr_linenumber" name="L828" href="#L828">828</a>         body._<strong class="jxr_keyword">return</strong>(JExpr.direct(<span class="jxr_string">"entity"</span>));
-<a class="jxr_linenumber" name="L829" href="#L829">829</a>         clazz.method(PUBLIC | JMod.STATIC, rowMapperNarrowed, <span class="jxr_string">"mapper"</span>).body()._<strong class="jxr_keyword">return</strong>(JExpr.direct(<span class="jxr_string">"mapper"</span>));
-<a class="jxr_linenumber" name="L830" href="#L830">830</a>     }
-<a class="jxr_linenumber" name="L831" href="#L831">831</a> 
-<a class="jxr_linenumber" name="L832" href="#L832">832</a>     <em class="jxr_javadoccomment">/**</em>
-<a class="jxr_linenumber" name="L833" href="#L833">833</a> <em class="jxr_javadoccomment">     * Maps tuple cassandra type to java tuple as a part of RowMapper#map(GettableData data) call</em>
-<a class="jxr_linenumber" name="L834" href="#L834">834</a> <em class="jxr_javadoccomment">     *</em>
-<a class="jxr_linenumber" name="L835" href="#L835">835</a> <em class="jxr_javadoccomment">     * @param tt    cassandra tuple type</em>
-<a class="jxr_linenumber" name="L836" href="#L836">836</a> <em class="jxr_javadoccomment">     * @param body  body to append code to</em>
-<a class="jxr_linenumber" name="L837" href="#L837">837</a> <em class="jxr_javadoccomment">     * @param name  name of a filed of type tuple</em>
-<a class="jxr_linenumber" name="L838" href="#L838">838</a> <em class="jxr_javadoccomment">     * @param param map method argument - raw casandra type</em>
-<a class="jxr_linenumber" name="L839" href="#L839">839</a> <em class="jxr_javadoccomment">     * @param bean  bean to invoke setter on</em>
-<a class="jxr_linenumber" name="L840" href="#L840">840</a> <em class="jxr_javadoccomment">     * @param type</em>
-<a class="jxr_linenumber" name="L841" href="#L841">841</a> <em class="jxr_javadoccomment">     */</em>
-<a class="jxr_linenumber" name="L842" href="#L842">842</a>     <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">void</strong> mapTuple(TupleType tt, JBlock body, String name, JVar param, JVar bean, DataType type) {
-<a class="jxr_linenumber" name="L843" href="#L843">843</a>         List&lt;DataType&gt; dt = tt.getComponentTypes();
-<a class="jxr_linenumber" name="L844" href="#L844">844</a>         JClass dts[] = <strong class="jxr_keyword">new</strong> JClass[dt.size()];
-<a class="jxr_linenumber" name="L845" href="#L845">845</a>         <strong class="jxr_keyword">for</strong> (<strong class="jxr_keyword">int</strong> i = 0; i &lt; dts.length; i++) {
-<a class="jxr_linenumber" name="L846" href="#L846">846</a>             dts[i] = getType(dt.get(i), model, cfg);
-<a class="jxr_linenumber" name="L847" href="#L847">847</a>         }
-<a class="jxr_linenumber" name="L848" href="#L848">848</a>         JVar t = body.decl(model.ref(TupleValue.<strong class="jxr_keyword">class</strong>), camelize(name, <strong class="jxr_keyword">true</strong>), param.invoke(getDataMethod(type.getName())).arg(name));
-<a class="jxr_linenumber" name="L849" href="#L849">849</a>         JConditional iffy = body._<strong class="jxr_keyword">if</strong>(t.ne(JExpr._<strong class="jxr_keyword">null</strong>()));
-<a class="jxr_linenumber" name="L850" href="#L850">850</a>         JBlock ifbody = iffy._then();
-<a class="jxr_linenumber" name="L851" href="#L851">851</a>         JInvocation tc = model.ref(getTupleClass(dts.length)).staticInvoke(<span class="jxr_string">"with"</span>);
-<a class="jxr_linenumber" name="L852" href="#L852">852</a>         <strong class="jxr_keyword">for</strong> (<strong class="jxr_keyword">int</strong> i = 0; i &lt; dts.length; i++) {
-<a class="jxr_linenumber" name="L853" href="#L853">853</a>             DataType cdt = dt.get(i);
-<a class="jxr_linenumber" name="L854" href="#L854">854</a>             <strong class="jxr_keyword">if</strong> (cdt.isFrozen()) {
-<a class="jxr_linenumber" name="L855" href="#L855">855</a>                 <strong class="jxr_keyword">if</strong> (cdt instanceof UserType) {
-<a class="jxr_linenumber" name="L856" href="#L856">856</a>                     UserType ut = (UserType) cdt;
-<a class="jxr_linenumber" name="L857" href="#L857">857</a>                     tc = tc.arg(mapUDT(i + <span class="jxr_string">""</span>, ut, t, cdt));
-<a class="jxr_linenumber" name="L858" href="#L858">858</a>                 } <strong class="jxr_keyword">else</strong> <strong class="jxr_keyword">if</strong> (cdt instanceof TupleType) {
-<a class="jxr_linenumber" name="L859" href="#L859">859</a>                     TupleType tuple = (TupleType) cdt;
-<a class="jxr_linenumber" name="L860" href="#L860">860</a>                     <em class="jxr_comment">// TODO need to support nested tuples. Will do later. Passing Null for now.</em>
-<a class="jxr_linenumber" name="L861" href="#L861">861</a>                     tc = tc.arg(JExpr.<strong class="jxr_keyword">cast</strong>(getType(tuple, model, cfg), JExpr._<strong class="jxr_keyword">null</strong>()));
-<a class="jxr_linenumber" name="L862" href="#L862">862</a>                 }
-<a class="jxr_linenumber" name="L863" href="#L863">863</a>             } <strong class="jxr_keyword">else</strong> <strong class="jxr_keyword">if</strong> (cdt.isCollection()) {
-<a class="jxr_linenumber" name="L864" href="#L864">864</a>                 <em class="jxr_comment">// TODO need to support nested collections within tuples. Will do later. Passing Null for now.</em>
-<a class="jxr_linenumber" name="L865" href="#L865">865</a>                 tc = tc.arg(JExpr.<strong class="jxr_keyword">cast</strong>(getType(cdt, model, cfg), JExpr._<strong class="jxr_keyword">null</strong>()));
-<a class="jxr_linenumber" name="L866" href="#L866">866</a>             } <strong class="jxr_keyword">else</strong> {
-<a class="jxr_linenumber" name="L867" href="#L867">867</a>                 tc = tc.arg(t.invoke(getDataMethod(dt.get(i).getName())).arg(lit(i)));
-<a class="jxr_linenumber" name="L868" href="#L868">868</a>             }
-<a class="jxr_linenumber" name="L869" href="#L869">869</a>         }
-<a class="jxr_linenumber" name="L870" href="#L870">870</a>         ifbody.add(bean.invoke(<span class="jxr_string">"set"</span> + camelize(name)).arg(tc));
-<a class="jxr_linenumber" name="L871" href="#L871">871</a>     }
-<a class="jxr_linenumber" name="L872" href="#L872">872</a> 
-<a class="jxr_linenumber" name="L873" href="#L873">873</a>     <strong class="jxr_keyword">private</strong> JInvocation mapUDT(String name, UserType ut, JVar param, DataType type) {
-<a class="jxr_linenumber" name="L874" href="#L874">874</a>         <strong class="jxr_keyword">return</strong> model.ref(getFullClassName(cfg.jpackage, ut.getTypeName())).staticInvoke(<span class="jxr_string">"mapper"</span>).invoke(<span class="jxr_string">"map"</span>)
-<a class="jxr_linenumber" name="L875" href="#L875">875</a>                 .arg(param.invoke(getDataMethod(type.getName()))
-<a class="jxr_linenumber" name="L876" href="#L876">876</a>                         <em class="jxr_comment">// somewhat very fragile and extremely straightforward but will stick with it form now</em>
-<a class="jxr_linenumber" name="L877" href="#L877">877</a>                         .arg(isInteger(name) ? lit(Integer.valueOf(name)) : lit(name)));
-<a class="jxr_linenumber" name="L878" href="#L878">878</a>     }
-<a class="jxr_linenumber" name="L879" href="#L879">879</a> 
-<a class="jxr_linenumber" name="L880" href="#L880">880</a> 
-<a class="jxr_linenumber" name="L881" href="#L881">881</a>     <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">void</strong> info() {
-<a class="jxr_linenumber" name="L882" href="#L882">882</a>         logger.info(<span class="jxr_string">"=================================================================="</span>);
-<a class="jxr_linenumber" name="L883" href="#L883">883</a>         logger.info(<span class="jxr_string">"Code Model Info :"</span>);
-<a class="jxr_linenumber" name="L884" href="#L884">884</a>         logger.info(<span class="jxr_string">"Artifacts Count : {}"</span>, model.countArtifacts());
-<a class="jxr_linenumber" name="L885" href="#L885">885</a>         logger.info(<span class="jxr_string">"Packages : "</span>);
-<a class="jxr_linenumber" name="L886" href="#L886">886</a>         Iterator&lt;JPackage&gt; it = model.packages();
-<a class="jxr_linenumber" name="L887" href="#L887">887</a>         <strong class="jxr_keyword">while</strong> (it.hasNext()) {
-<a class="jxr_linenumber" name="L888" href="#L888">888</a>             JPackage jp;
-<a class="jxr_linenumber" name="L889" href="#L889">889</a>             logger.info((jp = it.next()).name());
-<a class="jxr_linenumber" name="L890" href="#L890">890</a>             Iterator&lt;JDefinedClass&gt; classIterator = jp.classes();
-<a class="jxr_linenumber" name="L891" href="#L891">891</a>             <strong class="jxr_keyword">while</strong> (classIterator.hasNext())
-<a class="jxr_linenumber" name="L892" href="#L892">892</a>                 logger.info(<span class="jxr_string">"'- "</span> + classIterator.next().fullName());
-<a class="jxr_linenumber" name="L893" href="#L893">893</a>         }
-<a class="jxr_linenumber" name="L894" href="#L894">894</a>         logger.info(<span class="jxr_string">"=================================================================="</span>);
-<a class="jxr_linenumber" name="L895" href="#L895">895</a>     }
-<a class="jxr_linenumber" name="L896" href="#L896">896</a> 
-<a class="jxr_linenumber" name="L897" href="#L897">897</a> 
-<a class="jxr_linenumber" name="L898" href="#L898">898</a>     <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">void</strong> toStringMethods() {
-<a class="jxr_linenumber" name="L899" href="#L899">899</a>         Iterator&lt;JPackage&gt; jPackageIterator = model.packages();
-<a class="jxr_linenumber" name="L900" href="#L900">900</a>         <strong class="jxr_keyword">while</strong> (jPackageIterator.hasNext()) {
-<a class="jxr_linenumber" name="L901" href="#L901">901</a>             Iterator&lt;JDefinedClass&gt; jDefinedClassIterator = jPackageIterator.next().classes();
-<a class="jxr_linenumber" name="L902" href="#L902">902</a>             <strong class="jxr_keyword">while</strong> (jDefinedClassIterator.hasNext()) {
-<a class="jxr_linenumber" name="L903" href="#L903">903</a>                 JDefinedClass jdc = jDefinedClassIterator.next();
-<a class="jxr_linenumber" name="L904" href="#L904">904</a>                 <strong class="jxr_keyword">if</strong> (jdc.isClass() &amp;&amp; !jdc.isInterface()) {
-<a class="jxr_linenumber" name="L905" href="#L905">905</a>                     JMethod jMethod = jdc.method(PUBLIC, model.ref(String.<strong class="jxr_keyword">class</strong>), <span class="jxr_string">"toString"</span>);
-<a class="jxr_linenumber" name="L906" href="#L906">906</a>                     JBlock body = jMethod.body();
-<a class="jxr_linenumber" name="L907" href="#L907">907</a>                     JVar sb = body.decl(
-<a class="jxr_linenumber" name="L908" href="#L908">908</a>                             JMod.FINAL, model.ref(StringBuilder.<strong class="jxr_keyword">class</strong>),
-<a class="jxr_linenumber" name="L909" href="#L909">909</a>                             <span class="jxr_string">"sb"</span>, JExpr._<strong class="jxr_keyword">new</strong>(model.ref(StringBuilder.<strong class="jxr_keyword">class</strong>))
-<a class="jxr_linenumber" name="L910" href="#L910">910</a>                     );
-<a class="jxr_linenumber" name="L911" href="#L911">911</a>                     body.add(sb.invoke(<span class="jxr_string">"append"</span>).arg(<span class="jxr_string">"{"</span>).invoke(<span class="jxr_string">"append"</span>).arg(jdc.name()).invoke(<span class="jxr_string">"append"</span>).arg(<span class="jxr_string">":{"</span>));
-<a class="jxr_linenumber" name="L912" href="#L912">912</a>                     <strong class="jxr_keyword">int</strong> size = jdc.fields().size();
-<a class="jxr_linenumber" name="L913" href="#L913">913</a>                     <strong class="jxr_keyword">for</strong> (Map.Entry&lt;String, JFieldVar&gt; f : jdc.fields().entrySet()) {
-<a class="jxr_linenumber" name="L914" href="#L914">914</a>                         <strong class="jxr_keyword">if</strong> (!f.getValue().type().fullName().contains(<span class="jxr_string">"Mapper"</span>)) {
-<a class="jxr_linenumber" name="L915" href="#L915">915</a>                             body.add(sb.invoke(<span class="jxr_string">"append"</span>).arg(f.getKey())
-<a class="jxr_linenumber" name="L916" href="#L916">916</a>                                     .invoke(<span class="jxr_string">"append"</span>).arg(<span class="jxr_string">"="</span>)
-<a class="jxr_linenumber" name="L917" href="#L917">917</a>                                     .invoke(<span class="jxr_string">"append"</span>).arg(f.getValue()));
-<a class="jxr_linenumber" name="L918" href="#L918">918</a>                             <strong class="jxr_keyword">if</strong> (size != 1) {
-<a class="jxr_linenumber" name="L919" href="#L919">919</a>                                 body.add(sb.invoke(<span class="jxr_string">"append"</span>).arg(<span class="jxr_string">","</span>));
-<a class="jxr_linenumber" name="L920" href="#L920">920</a>                             }
-<a class="jxr_linenumber" name="L921" href="#L921">921</a>                         }
-<a class="jxr_linenumber" name="L922" href="#L922">922</a>                         size--;
-<a class="jxr_linenumber" name="L923" href="#L923">923</a>                     }
-<a class="jxr_linenumber" name="L924" href="#L924">924</a>                     body.add(sb.invoke(<span class="jxr_string">"append"</span>).arg(<span class="jxr_string">"}}"</span>));
-<a class="jxr_linenumber" name="L925" href="#L925">925</a>                     body._<strong class="jxr_keyword">return</strong>(sb.invoke(<span class="jxr_string">"toString"</span>));
-<a class="jxr_linenumber" name="L926" href="#L926">926</a>                 }
-<a class="jxr_linenumber" name="L927" href="#L927">927</a>             }
-<a class="jxr_linenumber" name="L928" href="#L928">928</a>         }
-<a class="jxr_linenumber" name="L929" href="#L929">929</a>     }
-<a class="jxr_linenumber" name="L930" href="#L930">930</a> 
-<a class="jxr_linenumber" name="L931" href="#L931">931</a> }
+<a class="jxr_linenumber" name="L700" href="#L700">700</a>         <strong class="jxr_keyword">if</strong> (pko == 0) {
+<a class="jxr_linenumber" name="L701" href="#L701">701</a>             f.annotate(com.datastax.driver.mapping.annotations.PartitionKey.<strong class="jxr_keyword">class</strong>);
+<a class="jxr_linenumber" name="L702" href="#L702">702</a>         } <strong class="jxr_keyword">else</strong> <strong class="jxr_keyword">if</strong> (pko &gt; 0) {
+<a class="jxr_linenumber" name="L703" href="#L703">703</a>             f.annotate(com.datastax.driver.mapping.annotations.PartitionKey.<strong class="jxr_keyword">class</strong>).param(<span class="jxr_string">"value"</span>, pko);
+<a class="jxr_linenumber" name="L704" href="#L704">704</a>         }
+<a class="jxr_linenumber" name="L705" href="#L705">705</a>         clazz.method(PUBLIC, ref, <span class="jxr_string">"get"</span> + camelize(name)).body()._<strong class="jxr_keyword">return</strong>(JExpr._<strong class="jxr_keyword">this</strong>().ref(f));
+<a class="jxr_linenumber" name="L706" href="#L706">706</a>         JMethod m = clazz.method(PUBLIC, Void.TYPE, <span class="jxr_string">"set"</span> + camelize(name));
+<a class="jxr_linenumber" name="L707" href="#L707">707</a>         JVar p = m.param(ref, camelize(name, <strong class="jxr_keyword">true</strong>));
+<a class="jxr_linenumber" name="L708" href="#L708">708</a>         m.body().assign(JExpr._<strong class="jxr_keyword">this</strong>().ref(f), p);
+<a class="jxr_linenumber" name="L709" href="#L709">709</a>     }
+<a class="jxr_linenumber" name="L710" href="#L710">710</a> 
+<a class="jxr_linenumber" name="L711" href="#L711">711</a>     <em class="jxr_javadoccomment">/**</em>
+<a class="jxr_linenumber" name="L712" href="#L712">712</a> <em class="jxr_javadoccomment">     * Generates row mapper code for a specified pojo</em>
+<a class="jxr_linenumber" name="L713" href="#L713">713</a> <em class="jxr_javadoccomment">     *</em>
+<a class="jxr_linenumber" name="L714" href="#L714">714</a> <em class="jxr_javadoccomment">     * @param clazz     pojo class</em>
+<a class="jxr_linenumber" name="L715" href="#L715">715</a> <em class="jxr_javadoccomment">     * @param rowMapper RowMapper interface</em>
+<a class="jxr_linenumber" name="L716" href="#L716">716</a> <em class="jxr_javadoccomment">     * @param fields    fields to map</em>
+<a class="jxr_linenumber" name="L717" href="#L717">717</a> <em class="jxr_javadoccomment">     * @throws JClassAlreadyExistsException thrown if class already exists in code model</em>
+<a class="jxr_linenumber" name="L718" href="#L718">718</a> <em class="jxr_javadoccomment">     */</em>
+<a class="jxr_linenumber" name="L719" href="#L719">719</a>     <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">void</strong> rowMapperCode(JDefinedClass clazz, JClass
+<a class="jxr_linenumber" name="L720" href="#L720">720</a>             rowMapper, Collection&lt;Pair&lt;String, DataType&gt;&gt; fields) <strong class="jxr_keyword">throws</strong> JClassAlreadyExistsException {
+<a class="jxr_linenumber" name="L721" href="#L721">721</a>         JClass rowMapperNarrowed = rowMapper.narrow(clazz);
+<a class="jxr_linenumber" name="L722" href="#L722">722</a>         JDefinedClass mapperImpl = clazz._<strong class="jxr_keyword">class</strong>(
+<a class="jxr_linenumber" name="L723" href="#L723">723</a>                 JMod.FINAL | JMod.STATIC | JMod.PRIVATE, clazz.name() + <span class="jxr_string">"RowMapper"</span>)
+<a class="jxr_linenumber" name="L724" href="#L724">724</a>                 ._<strong class="jxr_keyword">implements</strong>(rowMapperNarrowed);
+<a class="jxr_linenumber" name="L725" href="#L725">725</a>         clazz.field(JMod.PRIVATE | JMod.STATIC | JMod.FINAL, mapperImpl, <span class="jxr_string">"mapper"</span>, JExpr._<strong class="jxr_keyword">new</strong>(mapperImpl));
+<a class="jxr_linenumber" name="L726" href="#L726">726</a> 
+<a class="jxr_linenumber" name="L727" href="#L727">727</a>         JMethod map = mapperImpl.method(PUBLIC, clazz, <span class="jxr_string">"map"</span>);
+<a class="jxr_linenumber" name="L728" href="#L728">728</a>         JVar param = map.param(com.datastax.driver.core.GettableData.<strong class="jxr_keyword">class</strong>, <span class="jxr_string">"data"</span>);
+<a class="jxr_linenumber" name="L729" href="#L729">729</a>         JBlock body = map.body();
+<a class="jxr_linenumber" name="L730" href="#L730">730</a>         body._<strong class="jxr_keyword">if</strong>(param.eq(JExpr._<strong class="jxr_keyword">null</strong>()))._then()._<strong class="jxr_keyword">return</strong>(JExpr._<strong class="jxr_keyword">null</strong>());
+<a class="jxr_linenumber" name="L731" href="#L731">731</a>         JVar bean = body.decl(clazz, <span class="jxr_string">"entity"</span>, JExpr._<strong class="jxr_keyword">new</strong>(clazz));
+<a class="jxr_linenumber" name="L732" href="#L732">732</a>         <strong class="jxr_keyword">for</strong> (Pair&lt;String, DataType&gt; field : fields) {
+<a class="jxr_linenumber" name="L733" href="#L733">733</a>             String name = field.getValue0();
+<a class="jxr_linenumber" name="L734" href="#L734">734</a>             DataType type = field.getValue1();
+<a class="jxr_linenumber" name="L735" href="#L735">735</a>             JBlock ifNotNullBody = body._<strong class="jxr_keyword">if</strong>(JOp.not(param.invoke(<span class="jxr_string">"isNull"</span>)
+<a class="jxr_linenumber" name="L736" href="#L736">736</a>                     .arg(lit(name))))._then();
+<a class="jxr_linenumber" name="L737" href="#L737">737</a>             <strong class="jxr_keyword">if</strong> (type.isCollection()) {
+<a class="jxr_linenumber" name="L738" href="#L738">738</a>                 <em class="jxr_comment">/*JBlock jb = jb._if(JOp.not(param.invoke("isNull")</em>
+<a class="jxr_linenumber" name="L739" href="#L739">739</a> <em class="jxr_comment">                        .arg(lit(name))))._then();*/</em>
+<a class="jxr_linenumber" name="L740" href="#L740">740</a>                 List&lt;DataType&gt; typeArgs = type.getTypeArguments();
+<a class="jxr_linenumber" name="L741" href="#L741">741</a>                 JExpression setterExpression;
+<a class="jxr_linenumber" name="L742" href="#L742">742</a> 
+<a class="jxr_linenumber" name="L743" href="#L743">743</a>                 <strong class="jxr_keyword">if</strong> (typeArgs.size() == 1) {
+<a class="jxr_linenumber" name="L744" href="#L744">744</a>                     DataType arg = typeArgs.get(0);
+<a class="jxr_linenumber" name="L745" href="#L745">745</a>                     JClass cl = getType(arg, model, cfg);
+<a class="jxr_linenumber" name="L746" href="#L746">746</a>                     JExpression tclass = arg.isFrozen() ?
+<a class="jxr_linenumber" name="L747" href="#L747">747</a>                             arg.asJavaClass().isAssignableFrom(UDTValue.<strong class="jxr_keyword">class</strong>) ?
+<a class="jxr_linenumber" name="L748" href="#L748">748</a>                                     model.ref(UDTValue.<strong class="jxr_keyword">class</strong>).dotclass() : model.ref(TupleValue.<strong class="jxr_keyword">class</strong>).dotclass()
+<a class="jxr_linenumber" name="L749" href="#L749">749</a>                             : cl.dotclass();
+<a class="jxr_linenumber" name="L750" href="#L750">750</a>                     setterExpression = param.invoke(getDataMethod(type.getName()))
+<a class="jxr_linenumber" name="L751" href="#L751">751</a>                             .arg(name)
+<a class="jxr_linenumber" name="L752" href="#L752">752</a>                             .arg(tclass);
+<a class="jxr_linenumber" name="L753" href="#L753">753</a>                     <strong class="jxr_keyword">if</strong> (arg.isFrozen()) {
+<a class="jxr_linenumber" name="L754" href="#L754">754</a>                         <strong class="jxr_keyword">if</strong> (arg instanceof UserType) {
+<a class="jxr_linenumber" name="L755" href="#L755">755</a>                             JClass collectionClass = model.ref(
+<a class="jxr_linenumber" name="L756" href="#L756">756</a>                                     type.asJavaClass().isAssignableFrom(List.<strong class="jxr_keyword">class</strong>) ?
+<a class="jxr_linenumber" name="L757" href="#L757">757</a>                                             LinkedList.<strong class="jxr_keyword">class</strong> : HashSet.<strong class="jxr_keyword">class</strong>).narrow(cl);
+<a class="jxr_linenumber" name="L758" href="#L758">758</a>                             JVar collection = ifNotNullBody.decl(collectionClass, camelize(name, <strong class="jxr_keyword">true</strong>), JExpr._<strong class="jxr_keyword">new</strong>(collectionClass));
+<a class="jxr_linenumber" name="L759" href="#L759">759</a>                             JClass udtValueCollection = model.ref(type.asJavaClass()).narrow(UDTValue.<strong class="jxr_keyword">class</strong>);
+<a class="jxr_linenumber" name="L760" href="#L760">760</a>                             JVar udtCollection = ifNotNullBody.decl(udtValueCollection, camelize(name, <strong class="jxr_keyword">true</strong>) + <span class="jxr_string">"Source"</span>, setterExpression);
+<a class="jxr_linenumber" name="L761" href="#L761">761</a> 
+<a class="jxr_linenumber" name="L762" href="#L762">762</a>                             JForEach forEach = ifNotNullBody.forEach(model.ref(UDTValue.<strong class="jxr_keyword">class</strong>), <span class="jxr_string">"entry"</span>, udtCollection);
+<a class="jxr_linenumber" name="L763" href="#L763">763</a>                             JVar <strong class="jxr_keyword">var</strong> = forEach.<strong class="jxr_keyword">var</strong>();
+<a class="jxr_linenumber" name="L764" href="#L764">764</a>                             JBlock forEachBody = forEach.body();
+<a class="jxr_linenumber" name="L765" href="#L765">765</a>                             forEachBody.add(collection.invoke(<span class="jxr_string">"add"</span>).arg(cl.staticInvoke(<span class="jxr_string">"mapper"</span>).invoke(<span class="jxr_string">"map"</span>).arg(<strong class="jxr_keyword">var</strong>)));
+<a class="jxr_linenumber" name="L766" href="#L766">766</a>                             setterExpression = collection;
+<a class="jxr_linenumber" name="L767" href="#L767">767</a>                         } <strong class="jxr_keyword">else</strong> <strong class="jxr_keyword">if</strong> (arg instanceof TupleType) {
+<a class="jxr_linenumber" name="L768" href="#L768">768</a>                             <em class="jxr_comment">// TODO handle tuples</em>
+<a class="jxr_linenumber" name="L769" href="#L769">769</a>                             <strong class="jxr_keyword">throw</strong> <strong class="jxr_keyword">new</strong> UnsupportedOperationException(<span class="jxr_string">"Collections of tuples"</span> +
+<a class="jxr_linenumber" name="L770" href="#L770">770</a>                                     <span class="jxr_string">" are not yet supported when converting from Row to POJO."</span>);
+<a class="jxr_linenumber" name="L771" href="#L771">771</a>                         }
+<a class="jxr_linenumber" name="L772" href="#L772">772</a>                     }
+<a class="jxr_linenumber" name="L773" href="#L773">773</a>                 } <strong class="jxr_keyword">else</strong> <strong class="jxr_keyword">if</strong> (typeArgs.size() == 2) {
+<a class="jxr_linenumber" name="L774" href="#L774">774</a>                     DataType arg0 = typeArgs.get(0);
+<a class="jxr_linenumber" name="L775" href="#L775">775</a>                     DataType arg1 = typeArgs.get(1);
+<a class="jxr_linenumber" name="L776" href="#L776">776</a>                     JClass argc0 = getType(arg0, model, cfg);
+<a class="jxr_linenumber" name="L777" href="#L777">777</a>                     JClass argc1 = getType(arg1, model, cfg);
+<a class="jxr_linenumber" name="L778" href="#L778">778</a>                     <strong class="jxr_keyword">if</strong> (arg0.isFrozen() || arg1.isFrozen()) {
+<a class="jxr_linenumber" name="L779" href="#L779">779</a> 
+<a class="jxr_linenumber" name="L780" href="#L780">780</a>                         JVar hashmap = ifNotNullBody.decl(model.ref(Map.<strong class="jxr_keyword">class</strong>).narrow(argc0).narrow(argc1)
+<a class="jxr_linenumber" name="L781" href="#L781">781</a>                                 , camelize(name, <strong class="jxr_keyword">true</strong>), JExpr._<strong class="jxr_keyword">new</strong>(model.ref(HashMap.<strong class="jxr_keyword">class</strong>)
+<a class="jxr_linenumber" name="L782" href="#L782">782</a>                                 .narrow(argc0).narrow(argc1)));
+<a class="jxr_linenumber" name="L783" href="#L783">783</a>                         JExpression arg0csClass = model.ref(arg0.asJavaClass()).dotclass();
+<a class="jxr_linenumber" name="L784" href="#L784">784</a>                         JExpression arg1csClass = model.ref(arg1.asJavaClass()).dotclass();
+<a class="jxr_linenumber" name="L785" href="#L785">785</a> 
+<a class="jxr_linenumber" name="L786" href="#L786">786</a>                         JVar frozen = ifNotNullBody.decl(model.ref(Map.<strong class="jxr_keyword">class</strong>).narrow(arg0.asJavaClass(),
+<a class="jxr_linenumber" name="L787" href="#L787">787</a>                                         arg1.asJavaClass()), camelize(name, <strong class="jxr_keyword">true</strong>) + <span class="jxr_string">"Source"</span>,
+<a class="jxr_linenumber" name="L788" href="#L788">788</a>                                 param.invoke(getDataMethod(type.getName()))
+<a class="jxr_linenumber" name="L789" href="#L789">789</a>                                         .arg(name)
+<a class="jxr_linenumber" name="L790" href="#L790">790</a>                                         .arg(arg0csClass)
+<a class="jxr_linenumber" name="L791" href="#L791">791</a>                                         .arg(arg1csClass));
+<a class="jxr_linenumber" name="L792" href="#L792">792</a>                         JForEach forEach = ifNotNullBody.forEach(model.ref(Map.Entry.<strong class="jxr_keyword">class</strong>).narrow(arg0.asJavaClass(),
+<a class="jxr_linenumber" name="L793" href="#L793">793</a>                                 arg1.asJavaClass()), <span class="jxr_string">"entry"</span>, frozen.invoke(<span class="jxr_string">"entrySet"</span>));
+<a class="jxr_linenumber" name="L794" href="#L794">794</a>                         JVar <strong class="jxr_keyword">var</strong> = forEach.<strong class="jxr_keyword">var</strong>();
+<a class="jxr_linenumber" name="L795" href="#L795">795</a>                         JBlock forEachBody = forEach.body();
+<a class="jxr_linenumber" name="L796" href="#L796">796</a> 
+<a class="jxr_linenumber" name="L797" href="#L797">797</a>                         forEachBody.add(hashmap.invoke(<span class="jxr_string">"put"</span>)
+<a class="jxr_linenumber" name="L798" href="#L798">798</a>                                         .arg(arg0.isFrozen() ?
+<a class="jxr_linenumber" name="L799" href="#L799">799</a>                                                         argc0.staticInvoke(<span class="jxr_string">"mapper"</span>).invoke(<span class="jxr_string">"map"</span>).arg(<strong class="jxr_keyword">var</strong>.invoke(<span class="jxr_string">"getKey"</span>)) :
+<a class="jxr_linenumber" name="L800" href="#L800">800</a>                                                         <strong class="jxr_keyword">var</strong>.invoke(<span class="jxr_string">"getKey"</span>)
+<a class="jxr_linenumber" name="L801" href="#L801">801</a>                                         ).arg(arg1.isFrozen() ?
+<a class="jxr_linenumber" name="L802" href="#L802">802</a>                                                 argc1.staticInvoke(<span class="jxr_string">"mapper"</span>).invoke(<span class="jxr_string">"map"</span>).arg(<strong class="jxr_keyword">var</strong>.invoke(<span class="jxr_string">"getValue"</span>)) :
+<a class="jxr_linenumber" name="L803" href="#L803">803</a>                                                 <strong class="jxr_keyword">var</strong>.invoke(<span class="jxr_string">"getValue"</span>))
+<a class="jxr_linenumber" name="L804" href="#L804">804</a>                         );
+<a class="jxr_linenumber" name="L805" href="#L805">805</a>                         setterExpression = hashmap;
+<a class="jxr_linenumber" name="L806" href="#L806">806</a>                     } <strong class="jxr_keyword">else</strong> {
+<a class="jxr_linenumber" name="L807" href="#L807">807</a>                         setterExpression = param.invoke(getDataMethod(type.getName()))
+<a class="jxr_linenumber" name="L808" href="#L808">808</a>                                 .arg(name)
+<a class="jxr_linenumber" name="L809" href="#L809">809</a>                                 .arg(argc0.dotclass()).arg(argc1.dotclass());
+<a class="jxr_linenumber" name="L810" href="#L810">810</a>                     }
+<a class="jxr_linenumber" name="L811" href="#L811">811</a>                 } <strong class="jxr_keyword">else</strong> {
+<a class="jxr_linenumber" name="L812" href="#L812">812</a>                     <strong class="jxr_keyword">throw</strong> <strong class="jxr_keyword">new</strong> RuntimeException(String.format(<span class="jxr_string">"Unsupported arguments count %d: "</span>, typeArgs.size()));
+<a class="jxr_linenumber" name="L813" href="#L813">813</a>                 }
+<a class="jxr_linenumber" name="L814" href="#L814">814</a> 
+<a class="jxr_linenumber" name="L815" href="#L815">815</a> 
+<a class="jxr_linenumber" name="L816" href="#L816">816</a>                 ifNotNullBody.add(bean.invoke(<span class="jxr_string">"set"</span> + camelize(name))
+<a class="jxr_linenumber" name="L817" href="#L817">817</a>                         .arg(setterExpression));
+<a class="jxr_linenumber" name="L818" href="#L818">818</a>             } <strong class="jxr_keyword">else</strong> <strong class="jxr_keyword">if</strong> (type.isFrozen()) {
+<a class="jxr_linenumber" name="L819" href="#L819">819</a>                 <strong class="jxr_keyword">if</strong> (type instanceof UserType) {
+<a class="jxr_linenumber" name="L820" href="#L820">820</a>                     UserType ut = (UserType) type;
+<a class="jxr_linenumber" name="L821" href="#L821">821</a>                     ifNotNullBody.add(bean.invoke(<span class="jxr_string">"set"</span> + camelize(name))
+<a class="jxr_linenumber" name="L822" href="#L822">822</a>                             .arg(mapUDT(name, ut, param, type)));
+<a class="jxr_linenumber" name="L823" href="#L823">823</a>                 } <strong class="jxr_keyword">else</strong> <strong class="jxr_keyword">if</strong> (type instanceof TupleType) {
+<a class="jxr_linenumber" name="L824" href="#L824">824</a>                     TupleType tt = (TupleType) type;
+<a class="jxr_linenumber" name="L825" href="#L825">825</a> 
+<a class="jxr_linenumber" name="L826" href="#L826">826</a>                     mapTuple(tt, ifNotNullBody, name, param, bean, type);
+<a class="jxr_linenumber" name="L827" href="#L827">827</a> 
+<a class="jxr_linenumber" name="L828" href="#L828">828</a>                 }
+<a class="jxr_linenumber" name="L829" href="#L829">829</a>             } <strong class="jxr_keyword">else</strong> {
+<a class="jxr_linenumber" name="L830" href="#L830">830</a>                 ifNotNullBody.add(bean.invoke(<span class="jxr_string">"set"</span> + camelize(name))
+<a class="jxr_linenumber" name="L831" href="#L831">831</a>                         .arg(param.invoke(getDataMethod(type.getName())).arg(name)));
+<a class="jxr_linenumber" name="L832" href="#L832">832</a>             }
+<a class="jxr_linenumber" name="L833" href="#L833">833</a>         }
+<a class="jxr_linenumber" name="L834" href="#L834">834</a>         body._<strong class="jxr_keyword">return</strong>(JExpr.direct(<span class="jxr_string">"entity"</span>));
+<a class="jxr_linenumber" name="L835" href="#L835">835</a>         clazz.method(PUBLIC | JMod.STATIC, rowMapperNarrowed, <span class="jxr_string">"mapper"</span>).body()._<strong class="jxr_keyword">return</strong>(JExpr.direct(<span class="jxr_string">"mapper"</span>));
+<a class="jxr_linenumber" name="L836" href="#L836">836</a>     }
+<a class="jxr_linenumber" name="L837" href="#L837">837</a> 
+<a class="jxr_linenumber" name="L838" href="#L838">838</a>     <em class="jxr_javadoccomment">/**</em>
+<a class="jxr_linenumber" name="L839" href="#L839">839</a> <em class="jxr_javadoccomment">     * Maps tuple cassandra type to java tuple as a part of RowMapper#map(GettableData data) call</em>
+<a class="jxr_linenumber" name="L840" href="#L840">840</a> <em class="jxr_javadoccomment">     *</em>
+<a class="jxr_linenumber" name="L841" href="#L841">841</a> <em class="jxr_javadoccomment">     * @param tt    cassandra tuple type</em>
+<a class="jxr_linenumber" name="L842" href="#L842">842</a> <em class="jxr_javadoccomment">     * @param body  body to append code to</em>
+<a class="jxr_linenumber" name="L843" href="#L843">843</a> <em class="jxr_javadoccomment">     * @param name  name of a filed of type tuple</em>
+<a class="jxr_linenumber" name="L844" href="#L844">844</a> <em class="jxr_javadoccomment">     * @param param map method argument - raw casandra type</em>
+<a class="jxr_linenumber" name="L845" href="#L845">845</a> <em class="jxr_javadoccomment">     * @param bean  bean to invoke setter on</em>
+<a class="jxr_linenumber" name="L846" href="#L846">846</a> <em class="jxr_javadoccomment">     * @param type</em>
+<a class="jxr_linenumber" name="L847" href="#L847">847</a> <em class="jxr_javadoccomment">     */</em>
+<a class="jxr_linenumber" name="L848" href="#L848">848</a>     <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">void</strong> mapTuple(TupleType tt, JBlock body, String name, JVar param, JVar bean, DataType type) {
+<a class="jxr_linenumber" name="L849" href="#L849">849</a>         List&lt;DataType&gt; dt = tt.getComponentTypes();
+<a class="jxr_linenumber" name="L850" href="#L850">850</a>         JClass dts[] = <strong class="jxr_keyword">new</strong> JClass[dt.size()];
+<a class="jxr_linenumber" name="L851" href="#L851">851</a>         <strong class="jxr_keyword">for</strong> (<strong class="jxr_keyword">int</strong> i = 0; i &lt; dts.length; i++) {
+<a class="jxr_linenumber" name="L852" href="#L852">852</a>             dts[i] = getType(dt.get(i), model, cfg);
+<a class="jxr_linenumber" name="L853" href="#L853">853</a>         }
+<a class="jxr_linenumber" name="L854" href="#L854">854</a>         JVar t = body.decl(model.ref(TupleValue.<strong class="jxr_keyword">class</strong>), camelize(name, <strong class="jxr_keyword">true</strong>), param.invoke(getDataMethod(type.getName())).arg(name));
+<a class="jxr_linenumber" name="L855" href="#L855">855</a>         JConditional iffy = body._<strong class="jxr_keyword">if</strong>(t.ne(JExpr._<strong class="jxr_keyword">null</strong>()));
+<a class="jxr_linenumber" name="L856" href="#L856">856</a>         JBlock ifbody = iffy._then();
+<a class="jxr_linenumber" name="L857" href="#L857">857</a>         JInvocation tc = model.ref(getTupleClass(dts.length)).staticInvoke(<span class="jxr_string">"with"</span>);
+<a class="jxr_linenumber" name="L858" href="#L858">858</a>         <strong class="jxr_keyword">for</strong> (<strong class="jxr_keyword">int</strong> i = 0; i &lt; dts.length; i++) {
+<a class="jxr_linenumber" name="L859" href="#L859">859</a>             DataType cdt = dt.get(i);
+<a class="jxr_linenumber" name="L860" href="#L860">860</a>             <strong class="jxr_keyword">if</strong> (cdt.isFrozen()) {
+<a class="jxr_linenumber" name="L861" href="#L861">861</a>                 <strong class="jxr_keyword">if</strong> (cdt instanceof UserType) {
+<a class="jxr_linenumber" name="L862" href="#L862">862</a>                     UserType ut = (UserType) cdt;
+<a class="jxr_linenumber" name="L863" href="#L863">863</a>                     tc = tc.arg(mapUDT(i + <span class="jxr_string">""</span>, ut, t, cdt));
+<a class="jxr_linenumber" name="L864" href="#L864">864</a>                 } <strong class="jxr_keyword">else</strong> <strong class="jxr_keyword">if</strong> (cdt instanceof TupleType) {
+<a class="jxr_linenumber" name="L865" href="#L865">865</a>                     TupleType tuple = (TupleType) cdt;
+<a class="jxr_linenumber" name="L866" href="#L866">866</a>                     <em class="jxr_comment">// TODO need to support nested tuples. Will do later. Passing Null for now.</em>
+<a class="jxr_linenumber" name="L867" href="#L867">867</a>                     tc = tc.arg(JExpr.<strong class="jxr_keyword">cast</strong>(getType(tuple, model, cfg), JExpr._<strong class="jxr_keyword">null</strong>()));
+<a class="jxr_linenumber" name="L868" href="#L868">868</a>                 }
+<a class="jxr_linenumber" name="L869" href="#L869">869</a>             } <strong class="jxr_keyword">else</strong> <strong class="jxr_keyword">if</strong> (cdt.isCollection()) {
+<a class="jxr_linenumber" name="L870" href="#L870">870</a>                 <em class="jxr_comment">// TODO need to support nested collections within tuples. Will do later. Passing Null for now.</em>
+<a class="jxr_linenumber" name="L871" href="#L871">871</a>                 tc = tc.arg(JExpr.<strong class="jxr_keyword">cast</strong>(getType(cdt, model, cfg), JExpr._<strong class="jxr_keyword">null</strong>()));
+<a class="jxr_linenumber" name="L872" href="#L872">872</a>             } <strong class="jxr_keyword">else</strong> {
+<a class="jxr_linenumber" name="L873" href="#L873">873</a>                 tc = tc.arg(t.invoke(getDataMethod(dt.get(i).getName())).arg(lit(i)));
+<a class="jxr_linenumber" name="L874" href="#L874">874</a>             }
+<a class="jxr_linenumber" name="L875" href="#L875">875</a>         }
+<a class="jxr_linenumber" name="L876" href="#L876">876</a>         ifbody.add(bean.invoke(<span class="jxr_string">"set"</span> + camelize(name)).arg(tc));
+<a class="jxr_linenumber" name="L877" href="#L877">877</a>     }
+<a class="jxr_linenumber" name="L878" href="#L878">878</a> 
+<a class="jxr_linenumber" name="L879" href="#L879">879</a>     <strong class="jxr_keyword">private</strong> JInvocation mapUDT(String name, UserType ut, JVar param, DataType type) {
+<a class="jxr_linenumber" name="L880" href="#L880">880</a>         <strong class="jxr_keyword">return</strong> model.ref(getFullClassName(cfg.jpackage, ut.getTypeName())).staticInvoke(<span class="jxr_string">"mapper"</span>).invoke(<span class="jxr_string">"map"</span>)
+<a class="jxr_linenumber" name="L881" href="#L881">881</a>                 .arg(param.invoke(getDataMethod(type.getName()))
+<a class="jxr_linenumber" name="L882" href="#L882">882</a>                         <em class="jxr_comment">// somewhat very fragile and extremely straightforward but will stick with it form now</em>
+<a class="jxr_linenumber" name="L883" href="#L883">883</a>                         .arg(isInteger(name) ? lit(Integer.valueOf(name)) : lit(name)));
+<a class="jxr_linenumber" name="L884" href="#L884">884</a>     }
+<a class="jxr_linenumber" name="L885" href="#L885">885</a> 
+<a class="jxr_linenumber" name="L886" href="#L886">886</a> 
+<a class="jxr_linenumber" name="L887" href="#L887">887</a>     <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">void</strong> info() {
+<a class="jxr_linenumber" name="L888" href="#L888">888</a>         logger.info(<span class="jxr_string">"=================================================================="</span>);
+<a class="jxr_linenumber" name="L889" href="#L889">889</a>         logger.info(<span class="jxr_string">"Code Model Info :"</span>);
+<a class="jxr_linenumber" name="L890" href="#L890">890</a>         logger.info(<span class="jxr_string">"Artifacts Count : {}"</span>, model.countArtifacts());
+<a class="jxr_linenumber" name="L891" href="#L891">891</a>         logger.info(<span class="jxr_string">"Packages : "</span>);
+<a class="jxr_linenumber" name="L892" href="#L892">892</a>         Iterator&lt;JPackage&gt; it = model.packages();
+<a class="jxr_linenumber" name="L893" href="#L893">893</a>         <strong class="jxr_keyword">while</strong> (it.hasNext()) {
+<a class="jxr_linenumber" name="L894" href="#L894">894</a>             JPackage jp;
+<a class="jxr_linenumber" name="L895" href="#L895">895</a>             logger.info((jp = it.next()).name());
+<a class="jxr_linenumber" name="L896" href="#L896">896</a>             Iterator&lt;JDefinedClass&gt; classIterator = jp.classes();
+<a class="jxr_linenumber" name="L897" href="#L897">897</a>             <strong class="jxr_keyword">while</strong> (classIterator.hasNext())
+<a class="jxr_linenumber" name="L898" href="#L898">898</a>                 logger.info(<span class="jxr_string">"'- "</span> + classIterator.next().fullName());
+<a class="jxr_linenumber" name="L899" href="#L899">899</a>         }
+<a class="jxr_linenumber" name="L900" href="#L900">900</a>         logger.info(<span class="jxr_string">"=================================================================="</span>);
+<a class="jxr_linenumber" name="L901" href="#L901">901</a>     }
+<a class="jxr_linenumber" name="L902" href="#L902">902</a> 
+<a class="jxr_linenumber" name="L903" href="#L903">903</a> 
+<a class="jxr_linenumber" name="L904" href="#L904">904</a>     <strong class="jxr_keyword">private</strong> <strong class="jxr_keyword">void</strong> toStringMethods() {
+<a class="jxr_linenumber" name="L905" href="#L905">905</a>         Iterator&lt;JPackage&gt; jPackageIterator = model.packages();
+<a class="jxr_linenumber" name="L906" href="#L906">906</a>         <strong class="jxr_keyword">while</strong> (jPackageIterator.hasNext()) {
+<a class="jxr_linenumber" name="L907" href="#L907">907</a>             Iterator&lt;JDefinedClass&gt; jDefinedClassIterator = jPackageIterator.next().classes();
+<a class="jxr_linenumber" name="L908" href="#L908">908</a>             <strong class="jxr_keyword">while</strong> (jDefinedClassIterator.hasNext()) {
+<a class="jxr_linenumber" name="L909" href="#L909">909</a>                 JDefinedClass jdc = jDefinedClassIterator.next();
+<a class="jxr_linenumber" name="L910" href="#L910">910</a>                 <strong class="jxr_keyword">if</strong> (jdc.isClass() &amp;&amp; !jdc.isInterface()) {
+<a class="jxr_linenumber" name="L911" href="#L911">911</a>                     JMethod jMethod = jdc.method(PUBLIC, model.ref(String.<strong class="jxr_keyword">class</strong>), <span class="jxr_string">"toString"</span>);
+<a class="jxr_linenumber" name="L912" href="#L912">912</a>                     JBlock body = jMethod.body();
+<a class="jxr_linenumber" name="L913" href="#L913">913</a>                     JVar sb = body.decl(
+<a class="jxr_linenumber" name="L914" href="#L914">914</a>                             JMod.FINAL, model.ref(StringBuilder.<strong class="jxr_keyword">class</strong>),
+<a class="jxr_linenumber" name="L915" href="#L915">915</a>                             <span class="jxr_string">"sb"</span>, JExpr._<strong class="jxr_keyword">new</strong>(model.ref(StringBuilder.<strong class="jxr_keyword">class</strong>))
+<a class="jxr_linenumber" name="L916" href="#L916">916</a>                     );
+<a class="jxr_linenumber" name="L917" href="#L917">917</a>                     body.add(sb.invoke(<span class="jxr_string">"append"</span>).arg(<span class="jxr_string">"{"</span>).invoke(<span class="jxr_string">"append"</span>).arg(jdc.name()).invoke(<span class="jxr_string">"append"</span>).arg(<span class="jxr_string">":{"</span>));
+<a class="jxr_linenumber" name="L918" href="#L918">918</a>                     <strong class="jxr_keyword">int</strong> size = jdc.fields().size();
+<a class="jxr_linenumber" name="L919" href="#L919">919</a>                     <strong class="jxr_keyword">for</strong> (Map.Entry&lt;String, JFieldVar&gt; f : jdc.fields().entrySet()) {
+<a class="jxr_linenumber" name="L920" href="#L920">920</a>                         <strong class="jxr_keyword">if</strong> (!f.getValue().type().fullName().contains(<span class="jxr_string">"Mapper"</span>)) {
+<a class="jxr_linenumber" name="L921" href="#L921">921</a>                             body.add(sb.invoke(<span class="jxr_string">"append"</span>).arg(f.getKey())
+<a class="jxr_linenumber" name="L922" href="#L922">922</a>                                     .invoke(<span class="jxr_string">"append"</span>).arg(<span class="jxr_string">"="</span>)
+<a class="jxr_linenumber" name="L923" href="#L923">923</a>                                     .invoke(<span class="jxr_string">"append"</span>).arg(f.getValue()));
+<a class="jxr_linenumber" name="L924" href="#L924">924</a>                             <strong class="jxr_keyword">if</strong> (size != 1) {
+<a class="jxr_linenumber" name="L925" href="#L925">925</a>                                 body.add(sb.invoke(<span class="jxr_string">"append"</span>).arg(<span class="jxr_string">","</span>));
+<a class="jxr_linenumber" name="L926" href="#L926">926</a>                             }
+<a class="jxr_linenumber" name="L927" href="#L927">927</a>                         }
+<a class="jxr_linenumber" name="L928" href="#L928">928</a>                         size--;
+<a class="jxr_linenumber" name="L929" href="#L929">929</a>                     }
+<a class="jxr_linenumber" name="L930" href="#L930">930</a>                     body.add(sb.invoke(<span class="jxr_string">"append"</span>).arg(<span class="jxr_string">"}}"</span>));
+<a class="jxr_linenumber" name="L931" href="#L931">931</a>                     body._<strong class="jxr_keyword">return</strong>(sb.invoke(<span class="jxr_string">"toString"</span>));
+<a class="jxr_linenumber" name="L932" href="#L932">932</a>                 }
+<a class="jxr_linenumber" name="L933" href="#L933">933</a>             }
+<a class="jxr_linenumber" name="L934" href="#L934">934</a>         }
+<a class="jxr_linenumber" name="L935" href="#L935">935</a>     }
+<a class="jxr_linenumber" name="L936" href="#L936">936</a> 
+<a class="jxr_linenumber" name="L937" href="#L937">937</a> }
 </pre>
 <hr/>
 <div id="footer">Copyright &#169; 2015. All rights reserved.</div>
