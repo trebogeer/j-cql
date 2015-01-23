@@ -58,11 +58,6 @@
             <sourceLineNumbersEnabled>true</sourceLineNumbersEnabled>
             <facebookLike/>
             <googlePlusOne/>
-            <googleAnalytics>
-                <accountId>
-                    UA-58776749-1
-                </accountId>
-            </googleAnalytics>
         </fluidoSkin>
     </custom>
 
