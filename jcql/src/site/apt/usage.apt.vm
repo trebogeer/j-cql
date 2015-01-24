@@ -1,0 +1,103 @@
+ ~~ Licensed to the Apache Software Foundation (ASF) under one
+ ~~ or more contributor license agreements.  See the NOTICE file
+ ~~ distributed with this work for additional information
+ ~~ regarding copyright ownership.  The ASF licenses this file
+ ~~ to you under the Apache License, Version 2.0 (the
+ ~~ "License"); you may not use this file except in compliance
+ ~~ with the License.  You may obtain a copy of the License at
+ ~~
+ ~~   http://www.apache.org/licenses/LICENSE-2.0
+ ~~
+ ~~ Unless required by applicable law or agreed to in writing,
+ ~~ software distributed under the License is distributed on an
+ ~~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ ~~ KIND, either express or implied.  See the License for the
+ ~~ specific language governing permissions and limitations
+ ~~ under the License.
+
+ -----
+ Usage
+ -----
+ Dmitry Vasilyev
+ ------
+ 2015-01-23
+ ------
+
+Usage
+
+  The tool allows to automatically generate java boilerplate code from Apache Cassandra 2.1+ schema.
+
+* Basic Usage
+
+  Before you start it is best to add <<<jcql>>> as a dependency in your pom.
+
+
+---
+<project>
+  ...
+  <dependencies>
+    ...
+    <dependency>
+      <groupId>com.trebogeer.jcql</groupId>
+      <artifactId>jcql</artifactId>
+      <version>0.8.1</version>
+    </dependency>
+    ...
+  </dependencies>
+  ...
+  <build>
+    ...
+    <plugins>
+      ...
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>${exec.maven.plugin.v}</version>
+        <executions>
+          <execution>
+            <id>gen-code</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>java</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <mainClass>com.trebogeer.jcql.JCQLMain</mainClass>
+          <arguments>
+            <!--target generated source directory-->
+            <argument>-gsd</argument>
+            <argument>${project.build.directory}/autogen/</argument>
+            <!--cassandra host to connect to -->
+            <argument>-h</argument>
+            <argument>localhost</argument>
+            <!--cassandra port to connect to-->
+            <argument>-P</argument>
+            <agrument>${cs.ntp}</agrument>
+            <!--cassandra keyspace -->
+            <argument>-k</argument>
+            <argument>${cs.test.ks}</argument>
+            <!---debug?-->
+            <argument>-d</argument>
+            <argument>n</argument>
+            <!--print info during code generation-->
+            <argument>-i</argument>
+            <argument>n</argument>
+            <!-- generate toString method -->
+            <argument>-ts</argument>
+            <argument>y</argument>
+            <!--cql statements to generate data access layer of -->
+            <!--<argument>-cql</argument>-->
+            <!--<argument>${project.basedir}/src/test/resources/cql.yml</argument>-->
+          </arguments>
+        </configuration>
+      </plugin>
+      ...
+    </plugins>
+    ...
+  </build>
+  ...
+</project>
+---
+
+

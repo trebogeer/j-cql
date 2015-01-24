@@ -78,11 +78,11 @@
             </script>
             <!-- End Google Analytics -->
         </head>
-        <!--menu name="Overview">
+        <menu name="Overview">
             <item name="Introduction" href="index.html"/>
-            <item name="License" href="http://www.apache.org/licenses/"/>
-            <item name="Download" href="download.html"/>
-        </menu-->
+            <item name="Usage" href="usage.html"/>
+            <!--<item name="Maven Integration" href="maven.html"/>-->
+        </menu>
 
         <menu ref="modules"/>
         <menu ref="reports" inherit="bottom"/>
