@@ -107,6 +107,11 @@
         </snapshotRepository>
     </distributionManagement>
 
+    <ciManagement>
+        <system>travis-ci</system>
+        <url>https://travis-ci.org/trebogeer/j-cql/</url>
+    </ciManagement>
+
     <profiles>
         <profile>
             <id>install-file</id>
