@@ -114,6 +114,7 @@
 
     <profiles>
         <profile>
+            <!--TODO this profile needs fixing as generated source is omitted for now from packaging-->
             <id>install-file</id>
             <build>
                 <plugins>
@@ -132,7 +133,7 @@
                                     <file>${project.build.directory}/autogen-jar/${cs.test.ks}-${project.version}.jar
                                     </file>
                                     <sources>
-                                        ${project.build.directory}/autogen-src-jar/${cs.test.ks}-${project.version}-sources.jar
+                                        ${project.build.directory}/autogen-jar/${cs.test.ks}-${project.version}-sources.jar
                                     </sources>
                                 </configuration>
                             </execution>
@@ -195,35 +196,6 @@
                         </configuration>
                     </plugin>
 
-                </plugins>
-            </build>
-        </profile>
-        <profile>
-            <id>autogen-site</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>findbugs-maven-plugin</artifactId>
-                        <version>3.0.0</version>
-                        <executions>
-                            <execution>
-                                <id>findbugs-autogen</id>
-                                <phase>post-integration-test</phase>
-                                <goals>
-                                    <goal>findbugs</goal>
-                                </goals>
-                                <configuration>
-                                    <classFilesDirectory>${project.build.directory}/autogen-classes/
-                                    </classFilesDirectory>
-                                    <outputDirectory>${project.build.directory}/autogen-site</outputDirectory>
-                                    <xmlOutputDirectory>${project.build.directory}/autogen-site</xmlOutputDirectory>
-                                    <findbugsXmlOutputDirectory>${project.build.directory}/autogen-site
-                                    </findbugsXmlOutputDirectory>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
                 </plugins>
             </build>
         </profile>
