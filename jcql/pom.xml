@@ -4,7 +4,7 @@
 
     <groupId>com.trebogeer.jcql</groupId>
     <artifactId>jcql</artifactId>
-    <version>0.8.2</version>
+    <version>0.9.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>JCQL</name>
@@ -464,7 +464,7 @@
                                 <testks>${cs.test.ks}</testks>
                             </systemPropertyVariables>
                             <testClassesDirectory>
-                                ${project.build.directory}/autogen-it/
+                                ${project.build.directory}/autogen-classes/
                             </testClassesDirectory>
 
                         </configuration>
@@ -544,46 +544,8 @@
                             </compilerArgs>
                         </configuration>
                     </execution>
-                    <execution>
-                        <id>compile-integration-gen-test</id>
-                        <phase>pre-integration-test</phase>
-                        <goals>
-                            <goal>testCompile</goal>
-                        </goals>
-                        <configuration>
-                            <!--debug>true</debug>
-                            <debuglevel>source</debuglevel>
-                            <verbose>true</verbose-->
-                            <outputDirectory>${project.build.directory}/autogen-it/</outputDirectory>
-                            <compilerArgs>
-                                <arg>-Xlint</arg>
-                            </compilerArgs>
-                        </configuration>
-                    </execution>
                 </executions>
             </plugin>
-            <!--plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-source-plugin</artifactId>
-                <version>${maven.source.plugin.v}</version>
-                <executions>
-                    <execution>
-                        <id>gen-sources</id>
-                        <phase>pre-integration-test</phase>
-                        <goals>
-                            <goal>jar-no-fork</goal>
-                        </goals>
-                        <configuration>
-                            <excludes>
-                                <exclude>**/*JCQL*.java</exclude>
-                                <exclude>**/*Options*.java</exclude>
-                            </excludes>
-                            <outputDirectory>${project.build.directory}/autogen-src-jar/</outputDirectory>
-                            <finalName>${cs.test.ks}-${project.version}</finalName>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin-->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
@@ -603,18 +565,6 @@
                             </archive>
                         </configuration>
                     </execution>
-                    <!--execution>
-                        <id>gen-jar</id>
-                        <phase>pre-integration-test</phase>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                        <configuration>
-                            <classesDirectory>${project.build.directory}/autogen-classes/</classesDirectory>
-                            <outputDirectory>${project.build.directory}/autogen-jar/</outputDirectory>
-                            <finalName>gen-${cs.test.ks}-${project.version}</finalName>
-                        </configuration>
-                    </execution-->
                 </executions>
             </plugin>
 
