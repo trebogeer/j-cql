@@ -132,7 +132,7 @@ public class JCQLMain {
     /**
      * main routine generating java code
      *
-     * @throws IOException
+     * @throws IOException thrown if unable to write generated code to files
      */
     public void exec() throws IOException {
         String keyspace = cfg.keysapce;

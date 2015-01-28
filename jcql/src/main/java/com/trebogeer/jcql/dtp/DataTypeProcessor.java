@@ -55,6 +55,9 @@ public abstract class DataTypeProcessor<T extends JVar> {
      * data types
      *
      * @param dt cassandra data type ot process
+     * @param fieldName original name of a field
+     *
+     * @return expression that populates field
      */
     public JExpression processDataType(DataType dt, String fieldName) {
         this.fname = fieldName;
