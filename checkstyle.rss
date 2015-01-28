@@ -25,8 +25,8 @@ under the License.
     <language>en-us</language>
     <copyright>&#169;2015</copyright>
     <item>
-      <title>File: 7,
-             Errors: 554,
+      <title>File: 9,
+             Errors: 579,
              Warnings: 0,
              Infos: 0
       </title>
@@ -74,6 +74,34 @@ under the License.
               </tr>
                           <tr>
                 <td>
+                  <a href="http://github.com/trebogeer/j-cql/checkstyle.html#com.trebogeer.jcql.dtp.JCQLCodeFuncBuilder.java">com/trebogeer/jcql/dtp/JCQLCodeFuncBuilder.java</a>
+                </td>
+                <td>
+                  0
+                </td>
+                <td>
+                  0
+                </td>
+                <td>
+                  0
+                </td>
+              </tr>
+                          <tr>
+                <td>
+                  <a href="http://github.com/trebogeer/j-cql/checkstyle.html#com.trebogeer.jcql.dtp.JCQLBindCodeFunctions.java">com/trebogeer/jcql/dtp/JCQLBindCodeFunctions.java</a>
+                </td>
+                <td>
+                  0
+                </td>
+                <td>
+                  0
+                </td>
+                <td>
+                  28
+                </td>
+              </tr>
+                          <tr>
+                <td>
                   <a href="http://github.com/trebogeer/j-cql/checkstyle.html#com.trebogeer.jcql.Options.java">com/trebogeer/jcql/Options.java</a>
                 </td>
                 <td>
@@ -97,7 +125,7 @@ under the License.
                   0
                 </td>
                 <td>
-                  59
+                  56
                 </td>
               </tr>
                           <tr>
@@ -125,7 +153,7 @@ under the License.
                   0
                 </td>
                 <td>
-                  269
+                  268
                 </td>
               </tr>
                           <tr>
@@ -139,7 +167,7 @@ under the License.
                   0
                 </td>
                 <td>
-                  39
+                  40
                 </td>
               </tr>
                       </tbody>
