@@ -73,11 +73,12 @@
         <cassandraVersion>2.1.2</cassandraVersion>
         <!---->
         <build.helper.v>1.9.1</build.helper.v>
-        <cassandra.maven.plugin.v>2.1.2-1</cassandra.maven.plugin.v>
+        <cassandraMavenPlugin>2.1.2-1</cassandraMavenPlugin>
         <maven.jar.plugin.v>2.5</maven.jar.plugin.v>
         <maven.source.plugin.v>2.2.1</maven.source.plugin.v>
         <mavem.failsafe.plugin.v>2.7.1</mavem.failsafe.plugin.v>
-        <exec.maven.plugin.v>1.3.2</exec.maven.plugin.v>
+        <execMavenPlugin>1.3.2</execMavenPlugin>
+        <projectVersion>${project.version}</projectVersion>
         <maven.compiler.plugin.v>3.2</maven.compiler.plugin.v>
     </properties>
 
@@ -384,7 +385,7 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>cassandra-maven-plugin</artifactId>
-                <version>${cassandra.maven.plugin.v}</version>
+                <version>${cassandraMavenPlugin}</version>
                 <configuration>
                     <rpcPort>${cs.rpc}</rpcPort>
                     <jmxPort>${cs.jmx}</jmxPort>
@@ -446,7 +447,7 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
-                <version>${exec.maven.plugin.v}</version>
+                <version>${execMavenPlugin}</version>
                 <executions>
                     <execution>
                         <id>gen-code</id>

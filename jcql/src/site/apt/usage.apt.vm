@@ -38,7 +38,7 @@ Usage
     <dependency>
       <groupId>com.trebogeer.jcql</groupId>
       <artifactId>jcql</artifactId>
-      <version>0.8.2</version>
+      <version>${projectVersion}</version>
     </dependency>
     ...
   </dependencies>
@@ -50,7 +50,7 @@ Usage
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
-        <version>${exec.maven.plugin.v}</version>
+        <version>${execMavenPlugin}</version>
         <executions>
           <execution>
             <id>gen-code</id>
