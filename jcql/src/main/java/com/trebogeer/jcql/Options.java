@@ -20,7 +20,7 @@ package com.trebogeer.jcql;
 import org.kohsuke.args4j.Option;
 
 /**
- * @author dimav
+ * @author <a href="http://github.com/trebogeer">Dmitry Vasilyev</a>
  *         Date: 1/6/15
  *         Time: 4:24 PM
  */

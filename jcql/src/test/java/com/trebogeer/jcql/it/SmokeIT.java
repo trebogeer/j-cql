@@ -29,7 +29,7 @@ import java.util.Map;
 import static org.junit.Assert.assertEquals;
 
 /**
- * @author dimav
+ * @author <a href="http://github.com/trebogeer">Dmitry Vasilyev</a>
  *         Date: 1/8/15
  *         Time: 3:04 PM
  */

@@ -82,7 +82,7 @@ import static com.trebogeer.jcql.JCQLUtils.setDataMethod;
 import static com.trebogeer.jcql.JCQLUtils.typeToDTStaticMthod;
 
 /**
- * @author Dmitry Vasilyev
+ * @author <a href="http://github.com/trebogeer">Dmitry Vasilyev</a>
  */
 
 public class JCQLMain {

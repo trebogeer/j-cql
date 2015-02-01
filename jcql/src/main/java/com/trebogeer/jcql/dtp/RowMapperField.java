@@ -32,7 +32,7 @@ import static com.sun.codemodel.JExpr.lit;
 import static com.trebogeer.jcql.JCQLUtils.getDataMethod;
 
 /**
- * @author dimav
+ * @author <a href="http://github.com/trebogeer">Dmitry Vasilyev</a>
  *         Date: 1/23/15
  *         Time: 3:06 PM
  */
