@@ -17,8 +17,7 @@ performance implications due to use of reflection.
  
  * POJO-oriented development: Maps Cassandra rows to automatically generated domain objects so you can still work with the Object Oriented aspect of Java.
 
- * Easy to learn and use: JCQL is extremely simple to use. After code is generated there are only three interfaces you need to worry about to map data from 
- <br/> POJOs to Statements and back.
+ * Easy to learn and use: JCQL is extremely simple to use. After code is generated there are only three interfaces you need to worry about to map data from POJOs to Statements and back.
 
 ### To try out
 
