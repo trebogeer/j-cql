@@ -42,7 +42,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * @author dimav
+ * @author <a href="http://github.com/trebogeer">Dmitry Vasilyev</a>
  *         Date: 1/6/15
  *         Time: 4:55 PM
  */

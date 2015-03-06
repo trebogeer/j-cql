@@ -12,7 +12,7 @@ import static com.trebogeer.jcql.JCQLUtils.camelize;
 import static java.util.Objects.requireNonNull;
 
 /**
- * @author dimav
+ * @author <a href="http://github.com/trebogeer">Dmitry Vasilyev</a>
  *         Date: 1/26/15
  *         Time: 1:17 PM
  */

@@ -20,7 +20,7 @@ import java.util.EnumSet;
 import java.util.Set;
 
 /**
- * @author dimav
+ * @author <a href="http://github.com/trebogeer">Dmitry Vasilyev</a>
  *         Date: 1/13/15
  *         Time: 12:12 PM
  */

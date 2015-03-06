@@ -29,7 +29,7 @@ import static com.trebogeer.jcql.JCQLUtils.camelize;
 import static com.trebogeer.jcql.JCQLUtils.getType;
 
 /**
- * @author dimav
+ * @author <a href="http://github.com/trebogeer">Dmitry Vasilyev</a>
  *         Date: 1/22/15
  *         Time: 5:10 PM
  */

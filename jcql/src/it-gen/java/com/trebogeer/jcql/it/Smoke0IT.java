@@ -45,7 +45,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * @author dimav
+ * @author <a href="http://github.com/trebogeer">Dmitry Vasilyev</a>
  *         Date: 1/14/15
  *         Time: 5:15 PM
  */
