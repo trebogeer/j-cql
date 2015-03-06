@@ -198,6 +198,31 @@ public class Smoke0IT {
         }
     }
 
+    @Test
+    public void test4() {
+        try (
+                Cluster c = Cluster.builder().addContactPoint("localhost").withPort(port).build();
+                Session s = c.connect(key_space)
+        ) {
+
+            String email = "abccdef@asdf.gfd";
+            Accounts account = getTestAccount(email);
+            String query = "INSERT INTO accounts (addr, email, name) VALUES (?, ?, ?)";
+            PreparedStatement ps1 = s.prepare(query);
+            BoundStatement bs1 = new BoundStatement(ps1);
+
+            Accounts.bind().bind(account, bs1, s);
+
+            s.execute(bs1);
+            PreparedStatement ps = s.prepare("SELECT addr FROM jcql.accounts WHERE email = ?");
+            Row row0 = s.execute(ps.bind(email)).one();
+            Accounts a0 = Accounts.mapper().map(row0);
+            s.execute("TRUNCATE jcql.accounts");
+            Assert.assertEquals("To String comparison failed", a0.getAddr().toString(), account.getAddr().toString());
+        }
+    }
+
+
 
     private static Accounts getTestAccount(String email) {
         Phone p = new Phone();

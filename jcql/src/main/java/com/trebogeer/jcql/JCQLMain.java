@@ -465,10 +465,9 @@ public class JCQLMain {
             JBlock elseBody = ifNull._else();
             elseBody.add(st.invoke("setToNull").arg(fname));
 
-            
 
         }
-       // body.add(st.invoke("bind").arg(bindArgs));
+        // body.add(st.invoke("bind").arg(bindArgs));
     }
 
 
@@ -539,7 +538,7 @@ public class JCQLMain {
                         .staticInvoke("udtMapper")
                         .invoke("toUDT").arg(data.invoke("get" + fnamec)).arg(session);
             } else if (dt instanceof TupleType) {
-                Pair<JExpression, JExpression> refVal = processTuple(dt, data, fnamec ,body, session);
+                Pair<JExpression, JExpression> refVal = processTuple(dt, data, fnamec, body, session);
                 return refVal.getValue1();
             }
 
@@ -662,7 +661,7 @@ public class JCQLMain {
                     JExpression value = rvPair.getValue1();
                     getvalues.set(i, value);
                     jexpr = ref;
-                   // jexpr = JExpr._null();
+                    // jexpr = JExpr._null();
                 }
             } else if (adt.isCollection()) {
                 // TODO implement
@@ -729,16 +728,26 @@ public class JCQLMain {
                 ._implements(rowMapperNarrowed);
         clazz.field(JMod.PRIVATE | JMod.STATIC | JMod.FINAL, mapperImpl, "mapper", JExpr._new(mapperImpl));
 
+        boolean isTableMapper = arg2.name().equalsIgnoreCase(com.datastax.driver.core.Row.class.getSimpleName());
+
+
         JMethod map = mapperImpl.method(PUBLIC, clazz, "map");
         JVar param = map.param(arg2, "data");
         JBlock body = map.body();
         body._if(param.eq(JExpr._null()))._then()._return(JExpr._null());
+        JVar columnDefinitions = null;
+        if (isTableMapper) {
+            columnDefinitions = body.decl(model.ref(ColumnDefinitions.class), "cdfs", param.invoke("getColumnDefinitions"));
+        }
         JVar bean = body.decl(clazz, "entity", JExpr._new(clazz));
         for (Pair<String, DataType> field : fields) {
             String name = field.getValue0();
             DataType type = field.getValue1();
-            JBlock ifNotNullBody = body._if(JOp.not(param.invoke("isNull")
-                    .arg(lit(name))))._then();
+            JExpression ifCond = JOp.not(param.invoke("isNull").arg(lit(name)));
+            if (isTableMapper && columnDefinitions != null) {
+                ifCond = JOp.cand(columnDefinitions.invoke("contains").arg(lit(name)), ifCond);
+            }
+            JBlock ifNotNullBody = body._if(ifCond)._then();
             if (type.isCollection()) {
                 /*JBlock jb = jb._if(JOp.not(param.invoke("isNull")
                         .arg(lit(name))))._then();*/
