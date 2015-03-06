@@ -53,6 +53,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Serializable;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -303,6 +304,7 @@ public class JCQLMain {
         JDefinedClass binder = null;
         try {
             rowMapper = model._class(PUBLIC, cfg.jpackage + ".RowMapper", INTERFACE);
+            rowMapper._extends(model.ref(Serializable.class));
             JTypeVar jtv = rowMapper.generify("T");
             rowMapper.method(NONE, jtv, "map").param(com.datastax.driver.core.GettableData.class, "data");
         } catch (Exception e) {
@@ -312,6 +314,7 @@ public class JCQLMain {
         if (tables != null && !tables.isEmpty()) {
             try {
                 binder = model._class(PUBLIC, cfg.jpackage + ".TableBindMapper", INTERFACE);
+                binder._extends(model.ref(Serializable.class));
                 JTypeVar jtv = binder.generify("T");
                 JMethod jm = binder.method(NONE, model.VOID, "bind");
                 jm.param(jtv, "data");
@@ -325,6 +328,7 @@ public class JCQLMain {
         if (beans != null && beans.size() > 0) {
             try {
                 toUDTMapper = model._class(PUBLIC, cfg.jpackage + ".BeanToUDTMapper", INTERFACE);
+                toUDTMapper._extends(model.ref(Serializable.class));
                 JTypeVar jtv = toUDTMapper.generify("T");
                 JMethod toUDT = toUDTMapper.method(NONE, model.ref(UDTValue.class), "toUDT");
                 JVar toUDTArg0 = toUDT.param(jtv, "data");

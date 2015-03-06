@@ -35,6 +35,7 @@ import org.javatuples.Sextet;
 import org.javatuples.Triplet;
 import org.javatuples.Unit;
 
+import java.io.Serializable;
 import java.util.List;
 import java.util.function.Function;
 import java.util.regex.Matcher;
@@ -125,6 +126,7 @@ public class JCQLUtils {
     public static JDefinedClass getBeanClass(String packageName, String bean, JCodeModel codeModel) throws JClassAlreadyExistsException {
         JDefinedClass clazz = codeModel
                 ._class(JMod.PUBLIC, packageName + "." + bean, ClassType.CLASS);
+        clazz._implements(codeModel.ref(Serializable.class));
         clazz.constructor(JMod.PUBLIC);
         return clazz;
     }
