@@ -306,7 +306,8 @@ public class JCQLMain {
             rowMapper = model._class(PUBLIC, cfg.jpackage + ".RowMapper", INTERFACE);
             rowMapper._extends(model.ref(Serializable.class));
             JTypeVar jtv = rowMapper.generify("T");
-            rowMapper.method(NONE, jtv, "map").param(com.datastax.driver.core.GettableData.class, "data");
+            JTypeVar jtvRow = rowMapper.generify("R").bound(model.ref(com.datastax.driver.core.GettableData.class));
+            rowMapper.method(NONE, jtv, "map").param(jtvRow, "data");
         } catch (Exception e) {
             throw new RuntimeException("Failed to generate mapper interface.", e);
         }
@@ -343,7 +344,7 @@ public class JCQLMain {
                     JDefinedClass clazz = JCQLUtils.getBeanClass(cfg.jpackage, camelize(cl), model);
 
                     // row mapper
-                    rowMapperCode(clazz, rowMapper, beans.get(cl));
+                    rowMapperCode(clazz, rowMapper, beans.get(cl), model.ref(com.datastax.driver.core.GettableData.class));
 
                     // pojo to UDT mapper
                     toUDTMapperCode(clazz, toUDTMapper, beans.get(cl), cl);
@@ -375,7 +376,7 @@ public class JCQLMain {
                     });
 
                     // row mapper
-                    rowMapperCode(clazz, rowMapper, dataTypes);
+                    rowMapperCode(clazz, rowMapper, dataTypes, model.ref(com.datastax.driver.core.Row.class));
 
                     // bind to statement code
 
@@ -721,15 +722,15 @@ public class JCQLMain {
      * @throws JClassAlreadyExistsException thrown if class already exists in code model
      */
     private void rowMapperCode(JDefinedClass clazz, JClass
-            rowMapper, Collection<Pair<String, DataType>> fields) throws JClassAlreadyExistsException {
-        JClass rowMapperNarrowed = rowMapper.narrow(clazz);
+            rowMapper, Collection<Pair<String, DataType>> fields, JClass arg2) throws JClassAlreadyExistsException {
+        JClass rowMapperNarrowed = rowMapper.narrow(clazz, arg2);
         JDefinedClass mapperImpl = clazz._class(
                 JMod.FINAL | JMod.STATIC | JMod.PRIVATE, clazz.name() + "RowMapper")
                 ._implements(rowMapperNarrowed);
         clazz.field(JMod.PRIVATE | JMod.STATIC | JMod.FINAL, mapperImpl, "mapper", JExpr._new(mapperImpl));
 
         JMethod map = mapperImpl.method(PUBLIC, clazz, "map");
-        JVar param = map.param(com.datastax.driver.core.GettableData.class, "data");
+        JVar param = map.param(arg2, "data");
         JBlock body = map.body();
         body._if(param.eq(JExpr._null()))._then()._return(JExpr._null());
         JVar bean = body.decl(clazz, "entity", JExpr._new(clazz));
