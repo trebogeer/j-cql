@@ -20,6 +20,19 @@ import java.util.EnumSet;
 import java.util.Set;
 
 /**
+ *
+ * JCQL is a tool allowing to generate boilerplate java code from existing cassandra schema. It is intended to be
+ * used with Cassandra 2.1+ due to support of UDTs (User Defined Types)/Tuples/Collections.
+ * Cassandra's UDTs/Tuples/Collections and an ability to introspect schema through java driver make it possible to
+ * automatically generate POJOs and corresponding mappers between database and java models. Properly generated java
+ * code saves development efforts and is less error-prone compared to hand coding. Accompanied with proper CI and
+ * deployment it can also guarantee consistency between database and java models at any point of application
+ * lifecycle from development to production rollout. JCQL does not rely on java reflection or annotations which
+ * means all discrepancies between actual cassandra schema and what client code expects it to be will be identified
+ * during compilation not at runtime in the middle of the night right after production release. No need to worry
+ * about Cassandra client code performance implications due to use of reflection.
+ *
+ *
  * @author <a href="http://github.com/trebogeer">Dmitry Vasilyev</a>
  *         Date: 1/13/15
  *         Time: 12:12 PM
