@@ -531,18 +531,7 @@ public class JCQLMain {
         String fnamec = camelize(fname);
         String fnamecl = camelize(fname, true);
 
-        if (dt.isFrozen()) {
-
-            if (dt instanceof UserType) {
-                return model.ref(getFullClassName(cfg.jpackage, ((UserType) dt).getTypeName()))
-                        .staticInvoke("udtMapper")
-                        .invoke("toUDT").arg(data.invoke("get" + fnamec)).arg(session);
-            } else if (dt instanceof TupleType) {
-                Pair<JExpression, JExpression> refVal = processTuple(dt, data, fnamec, body, session);
-                return refVal.getValue1();
-            }
-
-        } else if (dt.isCollection()) {
+        if (dt.isCollection()) {
             List<DataType> argTypes = dt.getTypeArguments();
             if (argTypes != null) {
                 if (argTypes.size() == 1) {
@@ -619,7 +608,19 @@ public class JCQLMain {
                 }
 
             }
+        } else if (dt.isFrozen()) {
+
+            if (dt instanceof UserType) {
+                return model.ref(getFullClassName(cfg.jpackage, ((UserType) dt).getTypeName()))
+                        .staticInvoke("udtMapper")
+                        .invoke("toUDT").arg(data.invoke("get" + fnamec)).arg(session);
+            } else if (dt instanceof TupleType) {
+                Pair<JExpression, JExpression> refVal = processTuple(dt, data, fnamec, body, session);
+                return refVal.getValue1();
+            }
+
         }
+
         return data.invoke("get" + camelize(fname));
     }
 
