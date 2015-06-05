@@ -1,4 +1,4 @@
-## JCQL    [![Build Status](https://travis-ci.org/trebogeer/j-cql.svg?branch=master)](https://travis-ci.org/trebogeer/j-cql)
+## JCQL    [![Build Status](https://travis-ci.org/trebogeer/j-cql.svg?branch=master)](https://travis-ci.org/trebogeer/j-cql)[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.trebogeer.jcql/jcql/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.trebogeer.jcql/jcql) 
 
 
 JCQL is a tool allowing to generate boilerplate java code from existing
