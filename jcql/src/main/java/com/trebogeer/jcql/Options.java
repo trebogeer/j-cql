@@ -52,7 +52,10 @@ public class Options {
 
     @Option(name = "--target-package", aliases = {"-tp"})
     String jpackage = "com.trebogeer.jcql";
-    
+
+    @Option(name = "--common-package", aliases = {"-cp"})
+    String cpackage = "com.trebogeer.jcql.common";
+
     @Option(name = "--cql-file", aliases = {"-cql"})
     String cqlFile = "";//"/home/dimav/j-cql/jcql/src/test/resources/cql.yaml";
 
@@ -77,6 +80,7 @@ public class Options {
                 ", config='" + config + '\'' +
                 ", app='" + app + '\'' +
                 ", jpackage='" + jpackage + '\'' +
+                ", cpackage='" + cpackage + '\'' +
                 ", cqlFile='" + cqlFile + '\'' +
                 ", debug='" + debug + '\'' +
                 ", printInfo='" + printInfo + '\'' +

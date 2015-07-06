@@ -302,8 +302,9 @@ public class JCQLMain {
         JDefinedClass rowMapper;
         JDefinedClass toUDTMapper = null;
         JDefinedClass binder = null;
+        String commonsPackage = (cfg.cpackage !=null && !"".equals(cfg.cpackage)) ? cfg.cpackage : cfg.jpackage;
         try {
-            rowMapper = model._class(PUBLIC, cfg.jpackage + ".RowMapper", INTERFACE);
+            rowMapper = model._class(PUBLIC, commonsPackage + ".RowMapper", INTERFACE);
             rowMapper._extends(model.ref(Serializable.class));
             JTypeVar jtv = rowMapper.generify("T");
             JTypeVar jtvRow = rowMapper.generify("R").bound(model.ref(com.datastax.driver.core.GettableData.class));
@@ -314,7 +315,7 @@ public class JCQLMain {
 
         if (tables != null && !tables.isEmpty()) {
             try {
-                binder = model._class(PUBLIC, cfg.jpackage + ".TableBindMapper", INTERFACE);
+                binder = model._class(PUBLIC, commonsPackage + ".TableBindMapper", INTERFACE);
                 binder._extends(model.ref(Serializable.class));
                 JTypeVar jtv = binder.generify("T");
                 JMethod jm = binder.method(NONE, model.VOID, "bind");
@@ -328,7 +329,7 @@ public class JCQLMain {
 
         if (beans != null && beans.size() > 0) {
             try {
-                toUDTMapper = model._class(PUBLIC, cfg.jpackage + ".BeanToUDTMapper", INTERFACE);
+                toUDTMapper = model._class(PUBLIC, commonsPackage + ".BeanToUDTMapper", INTERFACE);
                 toUDTMapper._extends(model.ref(Serializable.class));
                 JTypeVar jtv = toUDTMapper.generify("T");
                 JMethod toUDT = toUDTMapper.method(NONE, model.ref(UDTValue.class), "toUDT");

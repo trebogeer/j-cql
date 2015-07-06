@@ -35,7 +35,7 @@ under ../target/autogen/
 
 ## Current version
 
-The current stable version of JCQL is 0.8.4
+The current stable version of JCQL is 0.8.5
 <br/>
 The current development version of JCQL is 9.0.0-SNAPSHOT
 <br/>
