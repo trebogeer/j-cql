@@ -71,8 +71,11 @@ import java.util.Set;
 import static com.sun.codemodel.ClassType.CLASS;
 import static com.sun.codemodel.ClassType.INTERFACE;
 import static com.sun.codemodel.JExpr.lit;
+import static com.sun.codemodel.JMod.FINAL;
 import static com.sun.codemodel.JMod.NONE;
+import static com.sun.codemodel.JMod.PRIVATE;
 import static com.sun.codemodel.JMod.PUBLIC;
+import static com.sun.codemodel.JMod.STATIC;
 import static com.trebogeer.jcql.JCQLUtils.camelize;
 import static com.trebogeer.jcql.JCQLUtils.getDataMethod;
 import static com.trebogeer.jcql.JCQLUtils.getFullClassName;
@@ -342,7 +345,9 @@ public class JCQLMain {
         if (beans != null) {
             for (String cl : beans.keySet()) {
                 try {
-                    JDefinedClass clazz = JCQLUtils.getBeanClass(cfg.jpackage, camelize(cl), model);
+                    String camName = camelize(cl);
+                    JDefinedClass clazz = JCQLUtils.getBeanClass(cfg.jpackage, camName, model);
+                    clazz.field(PRIVATE | STATIC | FINAL, model.LONG, "serialVersionUID", JExpr.lit((long)((cfg.jpackage + "." + camName).hashCode())));
 
                     // row mapper
                     rowMapperCode(clazz, rowMapper, beans.get(cl), model.ref(com.datastax.driver.core.GettableData.class));
@@ -366,7 +371,11 @@ public class JCQLMain {
         if (tables != null && !tables.isEmpty()) {
             for (String table : tables.keySet()) {
                 try {
-                    JDefinedClass clazz = JCQLUtils.getBeanClass(cfg.jpackage, camelize(table), model);
+                    String camName = camelize(table);
+                    JDefinedClass clazz = JCQLUtils.getBeanClass(cfg.jpackage, camName, model);
+                    clazz.field(PRIVATE | STATIC | FINAL, model.LONG, "serialVersionUID",
+                            JExpr.lit((long)((cfg.jpackage + "." + camName).hashCode())));
+
 
 
                     Collection<Pair<String, DataType>> dataTypes = Collections2.transform(tables.get(table), new Function<Pair<String, ColumnMetadata>, Pair<String, DataType>>() {
@@ -424,6 +433,8 @@ public class JCQLMain {
                 JMod.FINAL
                         | JMod.STATIC | JMod.PRIVATE, clazz.name() + "BindMapper")
                 ._implements(bindMapperNarrowed);
+        bindImpl.field(PRIVATE | STATIC | FINAL, model.LONG, "serialVersionUID",
+                JExpr.lit((long)((cfg.jpackage + "." + (clazz.name() + "BindMapper")).hashCode())));
         JVar bindSt = clazz.field(JMod.PRIVATE | JMod.STATIC | JMod.FINAL, bindImpl, "bind", JExpr._new(bindImpl));
         clazz.method(PUBLIC | JMod.STATIC, binder.narrow(clazz), "bind").body()._return(bindSt);
 
@@ -490,6 +501,8 @@ public class JCQLMain {
         JDefinedClass mapperImpl = clazz._class(
                 JMod.FINAL | JMod.STATIC | JMod.PRIVATE, clazz.name() + "ToUDTMapper")
                 ._implements(udtMapperNarrowed);
+        mapperImpl.field(PRIVATE | STATIC | FINAL, model.LONG, "serialVersionUID",
+                JExpr.lit((long)((cfg.jpackage + "." + (clazz.name() + "ToUDTMapper")).hashCode())));
         JVar udtMapperSt = clazz.field(JMod.PRIVATE | JMod.STATIC | JMod.FINAL, mapperImpl, "udt_mapper", JExpr._new(mapperImpl));
         clazz.method(PUBLIC | JMod.STATIC, udtMapperNarrowed, "udtMapper").body()._return(udtMapperSt);
 
@@ -729,6 +742,8 @@ public class JCQLMain {
                 JMod.FINAL | JMod.STATIC | JMod.PRIVATE, clazz.name() + "RowMapper")
                 ._implements(rowMapperNarrowed);
         clazz.field(JMod.PRIVATE | JMod.STATIC | JMod.FINAL, mapperImpl, "mapper", JExpr._new(mapperImpl));
+        mapperImpl.field(PRIVATE | STATIC | FINAL, model.LONG, "serialVersionUID",
+                JExpr.lit((long) ((cfg.jpackage + "." + (clazz.name() + "RowMapper")).hashCode())));
 
         boolean isTableMapper = arg2.name().equalsIgnoreCase(com.datastax.driver.core.Row.class.getSimpleName());
 
