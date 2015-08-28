@@ -305,7 +305,7 @@ public class JCQLMain {
         JDefinedClass rowMapper;
         JDefinedClass toUDTMapper = null;
         JDefinedClass binder = null;
-        String commonsPackage = (cfg.cpackage !=null && !"".equals(cfg.cpackage)) ? cfg.cpackage : cfg.jpackage;
+        String commonsPackage = (cfg.cpackage != null && !"".equals(cfg.cpackage)) ? cfg.cpackage : cfg.jpackage;
         try {
             rowMapper = model._class(PUBLIC, commonsPackage + ".RowMapper", INTERFACE);
             rowMapper._extends(model.ref(Serializable.class));
@@ -347,7 +347,7 @@ public class JCQLMain {
                 try {
                     String camName = camelize(cl);
                     JDefinedClass clazz = JCQLUtils.getBeanClass(cfg.jpackage, camName, model);
-                    clazz.field(PRIVATE | STATIC | FINAL, model.LONG, "serialVersionUID", JExpr.lit((long)((cfg.jpackage + "." + camName).hashCode())));
+                    clazz.field(PRIVATE | STATIC | FINAL, model.LONG, "serialVersionUID", JExpr.lit((long) ((cfg.jpackage + "." + camName).hashCode())));
 
                     // row mapper
                     rowMapperCode(clazz, rowMapper, beans.get(cl), model.ref(com.datastax.driver.core.GettableData.class));
@@ -357,6 +357,7 @@ public class JCQLMain {
 
                     // fields/getters/setters/annotations
                     clazz.annotate(UDT.class).param("keyspace", cfg.keysapce).param("name", cl);
+                    // JExpr.newArray(codeModel.ref(String.class)).add(ID).add(CODE).add(NAME)
                     for (Pair<String, DataType> field : beans.get(cl)) {
                         javaBeanFieldWithGetterSetter(clazz, field.getValue1(), field.getValue0(),
                                 -1, com.datastax.driver.mapping.annotations.Field.class);
@@ -374,8 +375,7 @@ public class JCQLMain {
                     String camName = camelize(table);
                     JDefinedClass clazz = JCQLUtils.getBeanClass(cfg.jpackage, camName, model);
                     clazz.field(PRIVATE | STATIC | FINAL, model.LONG, "serialVersionUID",
-                            JExpr.lit((long)((cfg.jpackage + "." + camName).hashCode())));
-
+                            JExpr.lit((long) ((cfg.jpackage + "." + camName).hashCode())));
 
 
                     Collection<Pair<String, DataType>> dataTypes = Collections2.transform(tables.get(table), new Function<Pair<String, ColumnMetadata>, Pair<String, DataType>>() {
@@ -399,10 +399,14 @@ public class JCQLMain {
 
                     for (Pair<String, ColumnMetadata> field : tables.get(table)) {
                         String fieldName = field.getValue0();
-                        int order = 0;
-                        if (pks.contains(fieldName) && pks.size() > 1) {
-                            order = pkList.indexOf(field.getValue0());
+                        int order = -1;
+                        if (pks.contains(fieldName)) {
+                            order = 0;
+                            if (pks.size() > 1) {
+                                order = pkList.indexOf(field.getValue0());
+                            }
                         }
+
                         javaBeanFieldWithGetterSetter(clazz, field.getValue1().getType(), fieldName,
                                 order, Column.class);
 
@@ -434,7 +438,7 @@ public class JCQLMain {
                         | JMod.STATIC | JMod.PRIVATE, clazz.name() + "BindMapper")
                 ._implements(bindMapperNarrowed);
         bindImpl.field(PRIVATE | STATIC | FINAL, model.LONG, "serialVersionUID",
-                JExpr.lit((long)((cfg.jpackage + "." + (clazz.name() + "BindMapper")).hashCode())));
+                JExpr.lit((long) ((cfg.jpackage + "." + (clazz.name() + "BindMapper")).hashCode())));
         JVar bindSt = clazz.field(JMod.PRIVATE | JMod.STATIC | JMod.FINAL, bindImpl, "bind", JExpr._new(bindImpl));
         clazz.method(PUBLIC | JMod.STATIC, binder.narrow(clazz), "bind").body()._return(bindSt);
 
@@ -502,7 +506,7 @@ public class JCQLMain {
                 JMod.FINAL | JMod.STATIC | JMod.PRIVATE, clazz.name() + "ToUDTMapper")
                 ._implements(udtMapperNarrowed);
         mapperImpl.field(PRIVATE | STATIC | FINAL, model.LONG, "serialVersionUID",
-                JExpr.lit((long)((cfg.jpackage + "." + (clazz.name() + "ToUDTMapper")).hashCode())));
+                JExpr.lit((long) ((cfg.jpackage + "." + (clazz.name() + "ToUDTMapper")).hashCode())));
         JVar udtMapperSt = clazz.field(JMod.PRIVATE | JMod.STATIC | JMod.FINAL, mapperImpl, "udt_mapper", JExpr._new(mapperImpl));
         clazz.method(PUBLIC | JMod.STATIC, udtMapperNarrowed, "udtMapper").body()._return(udtMapperSt);
 
