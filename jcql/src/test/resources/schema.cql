@@ -26,6 +26,7 @@ CREATE TYPE jcql.address (
 CREATE TABLE jcql.accounts (
    email text PRIMARY KEY,
    name text,
+   solr_query text,
    addr frozen<address>,
    settest set<text>,
    set2test set<frozen <address>>,

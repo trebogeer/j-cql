@@ -56,6 +56,9 @@ public class Options {
     @Option(name = "--common-package", aliases = {"-cp"})
     String cpackage = "com.trebogeer.jcql.common";
 
+    @Option(name = "--annotate", aliases = {"-an"})
+    String annotate = "y";
+
     @Option(name = "--cql-file", aliases = {"-cql"})
     String cqlFile = "";//"/home/dimav/j-cql/jcql/src/test/resources/cql.yaml";
 
@@ -81,6 +84,7 @@ public class Options {
                 ", app='" + app + '\'' +
                 ", jpackage='" + jpackage + '\'' +
                 ", cpackage='" + cpackage + '\'' +
+                ", annotate='" + annotate + '\'' +
                 ", cqlFile='" + cqlFile + '\'' +
                 ", debug='" + debug + '\'' +
                 ", printInfo='" + printInfo + '\'' +

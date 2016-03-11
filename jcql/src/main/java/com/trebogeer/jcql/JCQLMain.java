@@ -36,6 +36,7 @@ import com.datastax.driver.mapping.annotations.Column;
 import com.datastax.driver.mapping.annotations.Table;
 import com.datastax.driver.mapping.annotations.UDT;
 import com.google.common.base.Function;
+import com.google.common.base.Predicate;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.HashMultimap;
@@ -378,12 +379,12 @@ public class JCQLMain {
                             JExpr.lit((long) ((cfg.jpackage + "." + camName).hashCode())));
 
 
-                    Collection<Pair<String, DataType>> dataTypes = Collections2.transform(tables.get(table), new Function<Pair<String, ColumnMetadata>, Pair<String, DataType>>() {
+                    Collection<Pair<String, DataType>> dataTypes = Collections2.filter(Collections2.transform(tables.get(table), new Function<Pair<String, ColumnMetadata>, Pair<String, DataType>>() {
                         @Override
                         public Pair<String, DataType> apply(Pair<String, ColumnMetadata> input) {
                             return Pair.with(input.getValue0(), input.getValue1().getType());
                         }
-                    });
+                    }), input -> input != null && !"solr_query".equalsIgnoreCase(input.getValue0()));
 
                     // row mapper
                     rowMapperCode(clazz, rowMapper, dataTypes, model.ref(com.datastax.driver.core.Row.class));
@@ -406,10 +407,8 @@ public class JCQLMain {
                                 order = pkList.indexOf(field.getValue0());
                             }
                         }
-
                         javaBeanFieldWithGetterSetter(clazz, field.getValue1().getType(), fieldName,
                                 order, Column.class);
-
 
                     }
                 } catch (JClassAlreadyExistsException ex) {
